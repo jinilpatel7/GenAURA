@@ -14,5 +14,14 @@ tqdm
 plotly
 openai-whisper
 
+soundfile
+librosa==0.10.0.post2
 
+torch
+
+python-dotenv
+
+
+google-cloud-speech
+google-cloud-language
 
