@@ -1,29 +1,73 @@
-sounddevice
-scipy
-librosa
-pyAudioAnalysis
-numpy
-imbalanced-learn
-eyed3
-hmmlearn
-scikit-learn
-matplotlib
-transformers
-pydub
-tqdm
-plotly
-openai-whisper
+# sounddevice
+# scipy
+# librosa
+# pyAudioAnalysis
+# numpy
+# imbalanced-learn
+# eyed3
+# hmmlearn
+# scikit-learn
+# matplotlib
+# transformers
+# pydub
+# tqdm
+# plotly
+# openai-whisper
 
-soundfile
-librosa==0.10.0.post2
+# soundfile
+# librosa==0.10.0.post2
 
-torch
+# torch
 
-python-dotenv
+# python-dotenv
 
 
-google-cloud-speech
-google-cloud-language
+# google-cloud-speech
+# google-cloud-language
 
-torchvision
-torchaudio
+# torchvision
+# torchaudio
+
+# fastapi
+# uvicorn[standard]
+# python-multipart
+# google-cloud-texttospeech
+# google-cloud-firestore
+
+
+
+# imageio-ffmpeg
+# requests
+# google-auth==2.33.0
+
+
+# firebase-admin
+# aiofiles
+
+# langchain
+
+# langchain-core
+# langchain-openai
+# langchain_community
+# langgraph==0.0.35
+# openai==1.44.1
+
+# websockets 
+# webrtcvad
+
+
+
+fastapi==0.101.1
+uvicorn[standard]==0.22.0
+aiofiles==23.1.0
+python-multipart==0.0.6
+jinja2==3.1.2
+numpy==1.26.5
+soundfile==0.12.1
+librosa==0.10.1
+scipy==1.11.2
+google-cloud-speech==2.20.1
+google-cloud-firestore==2.11.0
+google-cloud-storage==2.9.0
+vertexai==0.9.0
+python-dotenv==1.0.1
