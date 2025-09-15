@@ -71,3 +71,50 @@ google-cloud-firestore==2.11.0
 google-cloud-storage==2.9.0
 vertexai==0.9.0
 python-dotenv==1.0.1
+
+passlib[bcrypt]
+python-jose[cryptography]
+
+
+# Core application
+fastapi
+uvicorn[standard]
+python-dotenv
+
+# Google Cloud
+google-cloud-speech
+google-cloud-firestore
+google-cloud-texttospeech
+google-cloud-aiplatform
+
+# Audio Processing
+numpy
+librosa
+scipy
+soundfile
+
+# Authentication (New)
+passlib[bcrypt]
+
+# Core application
+fastapi
+uvicorn[standard]
+python-dotenv
+
+# Google Cloud
+google-cloud-speech
+google-cloud-firestore
+google-cloud-texttospeech
+google-cloud-aiplatform
+
+# Audio Processing (Updated librosa version)
+numpy
+librosa==0.10.1
+scipy
+soundfile
+
+# Authentication (Pinned versions for compatibility)
+passlib==5.3.0
+bcrypt==4.0.1
+
+pytz

@@ -6,90 +6,153 @@
   <meta name="viewport" content="width=device-width,initial-scale-1" />
   <style>
     :root{--bg:#f7f9fc;--card:#fff;--muted:#6b7280;--accent:#2563eb;--success:#10b981;--warning:#f59e0b;--danger:#ef4444;--border:#e6e9ef;--transition:all .2s ease}
-    *{box-sizing:border-box;margin:0;padding:0}body{font-family:Inter,system-ui,Arial,sans-serif;background:var(--bg);margin:0;padding:18px;color:#111;line-height:1.5}.container{max-width:960px;margin:0 auto}header{display:flex;align-items:center;gap:12px;margin-bottom:24px}h1{font-size:24px;font-weight:600;margin:0}.subtitle{font-size:14px;color:var(--muted);margin-top:4px}.session-setup,.controls,.recording,.taskbar{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:16px;background:var(--card);padding:12px;border-radius:12px;border:1px solid var(--border)}button{background:var(--card);border:1px solid var(--border);padding:10px 16px;border-radius:10px;cursor:pointer;font-weight:500;transition:var(--transition);display:flex;align-items:center;gap:6px}button.primary{background:var(--accent);color:white;border-color:transparent}button.success{background:var(--success);color:white;border-color:transparent}button.danger{background:var(--danger);color:white;border-color:transparent}button:disabled{opacity:.5;cursor:not-allowed}select, .gender-options label{font-size: 14px; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border);}#conversation{background:var(--card);padding:16px;border-radius:12px;border:1px solid var(--border);max-height:450px;overflow-y:auto;margin-bottom:20px;box-shadow:0 1px 3px rgba(0,0,0,.05)}.turn{margin:12px 0;display:flex;flex-direction:column;gap:6px}.ai{align-self:flex-start;background:#f0f9ff;padding:12px 16px;border-radius:12px;max-width:85%;border-top-left-radius:4px}.user{align-self:flex-end;background:#fbfbfb;padding:12px 16px;border-radius:12px;max-width:85%;text-align:right;border-top-right-radius:4px}.system{align-self:center;background:#f3f4f6;padding:8px 16px;border-radius:12px;font-size:13px;color:var(--muted);max-width:85%}.speaker{font-weight:600;font-size:13px;color:#4b5563;margin-bottom:4px;display:flex;align-items:center;gap:6px}.ai .speaker{color:#1e40af}.user .speaker{color:#4b5563}.message{line-height:1.5; display: flex; flex-direction: column; gap: 8px;}.meta{font-size:12px;color:var(--muted);margin-top:6px;display:flex;align-items:center;gap:6px}.debug-section{margin-top:24px}.section-title{font-size:18px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px}pre#pipeline{background:#0f1724;color:#e6eef8;padding:16px;border-radius:12px;overflow:auto;max-height:240px;font-family:monospace;font-size:13px;line-height:1.4;margin-bottom:24px}.small{font-size:13px;color:var(--muted)}#timerBox{display:inline-flex;align-items:center;gap:10px;background:#f0f9ff;padding:6px 12px;border-radius:8px;border:1px solid #bfdbfe}.chip{display:inline-block;padding:4px 8px;border-radius:999px;background:#dbeafe;color:#1e40af;font-weight:600;font-size:13px}.timer-value{font-weight:600;color:#1e40af}.task-info{font-size:14px;color:#4b5563;margin-left:auto}.task-instructions{background:#f0f9ff;border-left:3px solid #1e40af;padding:8px 12px;margin-top:8px;border-radius:0 4px 4px 0;font-size:14px}footer{margin-top:32px;font-size:13px;color:var(--muted);padding-top:16px;border-top:1px solid var(--border)}.recording-active{animation:pulse 2s infinite}.safety-alert{background:#fee2e2;border:1px solid var(--danger);color:#b91c1c;padding:12px;border-radius:8px;margin:16px 0;display:none}.hidden{display:none}.status-indicator{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}.status-idle{background:#9ca3af}.status-listening{background:#ef4444}.status-processing{background:#f59e0b}.status-ready{background:#10b981}.task-completed{animation:highlight 1s}
-    .psychology-note{margin-top:10px;padding:10px 12px;background:#f3f4f6;border-left:3px solid var(--success);border-radius:0 4px 4px 0;font-size:13px;color:var(--muted);line-height:1.4}
-    .psychology-note::before{content:'💡 The Idea Behind This: ';font-weight:600;color:#4b5563;display:block;margin-bottom:4px}
-    .response-empathy { color: #1e40af; }
-    .response-safety-crisis { color: var(--danger); font-weight: 600; }
-    .response-suggestion { font-style: italic; color: var(--muted); padding-left: 12px; border-left: 2px solid var(--border); }
-    .response-task-instruction { font-weight: 500; }
-    @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(239,68,68,.4)}70%{box-shadow:0 0 0 10px rgba(239,68,68,0)}100%{box-shadow:0 0 0 0 rgba(239,68,68,0)}}@keyframes highlight{0%{background:#dcfce7}100%{background:#f0f9ff}}
+    *{box-sizing:border-box;margin:0;padding:0}body{font-family:Inter,system-ui,Arial,sans-serif;background:var(--bg);margin:0;padding:18px;color:#111;line-height:1.5}.container{max-width:960px;margin:0 auto}header{display:flex;align-items:center;gap:12px;margin-bottom:24px}h1{font-size:24px;font-weight:600;margin:0}.subtitle{font-size:14px;color:var(--muted);margin-top:4px}
+    /* Layout */
+    .hidden{display:none!important}
+    /* Auth Forms */
+    .auth-container{max-width:400px;margin:48px auto;background:var(--card);padding:24px;border-radius:12px;border:1px solid var(--border)}
+    .auth-form{display:flex;flex-direction:column;gap:16px}.auth-form h2{font-size:20px;text-align:center;margin-bottom:8px}
+    .auth-form input{padding:10px;border:1px solid var(--border);border-radius:8px;font-size:14px}
+    .auth-form .form-footer{font-size:13px;text-align:center}.auth-form .form-footer a{color:var(--accent);cursor:pointer;text-decoration:none}.auth-form .form-footer a:hover{text-decoration:underline}
+    /* App Components */
+    .session-setup,.controls,.recording,.taskbar{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:16px;background:var(--card);padding:12px;border-radius:12px;border:1px solid var(--border)}
+    button{background:var(--card);border:1px solid var(--border);padding:10px 16px;border-radius:10px;cursor:pointer;font-weight:500;transition:var(--transition);display:flex;align-items:center;justify-content:center;gap:8px;position:relative}
+    button.primary{background:var(--accent);color:white;border-color:transparent}
+    button.success{background:var(--success);color:white;border-color:transparent}
+    button.danger{background:var(--danger);color:white;border-color:transparent}
+    button:disabled{opacity:.5;cursor:not-allowed}
+    select, .gender-options label{font-size: 14px; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border);}
+    /* Conversation */
+    #conversation{background:var(--card);padding:16px;border-radius:12px;border:1px solid var(--border);height:450px;overflow-y:auto;margin-bottom:20px;box-shadow:0 1px 3px rgba(0,0,0,.05)}.turn{margin:12px 0;display:flex;flex-direction:column;gap:6px}.ai{align-items:flex-start;}.user{align-items:flex-end;}.turn > div{padding:12px 16px;border-radius:12px;max-width:85%}.ai > div{background:#f0f9ff;border-top-left-radius:4px}.user > div{background:#fbfbfb;text-align:left;border-top-right-radius:4px}.system > div{align-self:center;background:#f3f4f6;font-size:13px;color:var(--muted)}.speaker{font-weight:600;font-size:13px;color:#4b5563;margin-bottom:4px;display:flex;align-items:center;gap:6px}.ai .speaker{color:#1e40af}.user .speaker{color:#4b5563}.message{line-height:1.5;display:flex;flex-direction:column;gap:8px}
+    /* Meta & Debug */
+    .meta{font-size:12px;color:var(--muted);margin-top:6px;display:flex;align-items:center;gap:6px}.debug-section{margin-top:24px}.section-title{font-size:18px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px}pre#pipeline{background:#0f1724;color:#e6eef8;padding:16px;border-radius:12px;overflow:auto;max-height:240px;font-family:monospace;font-size:13px;line-height:1.4;margin-bottom:24px}.small{font-size:13px;color:var(--muted)}
+    /* Task & Status */
+    #timerBox{display:inline-flex;align-items:center;gap:10px;background:#f0f9ff;padding:6px 12px;border-radius:8px;border:1px solid #bfdbfe}.chip{display:inline-block;padding:4px 8px;border-radius:999px;background:#dbeafe;color:#1e40af;font-weight:600;font-size:13px}.timer-value{font-weight:600;color:#1e40af}.task-info{font-size:14px;color:#4b5563;margin-left:auto}.task-instructions{background:#f0f9ff;border-left:3px solid #1e40af;padding:8px 12px;margin-top:8px;border-radius:0 4px 4px 0;font-size:14px}footer{margin-top:32px;font-size:13px;color:var(--muted);padding-top:16px;border-top:1px solid var(--border)}.recording-active{animation:pulse 2s infinite}.safety-alert{background:#fee2e2;border:1px solid var(--danger);color:#b91c1c;padding:12px;border-radius:8px;margin:16px 0}
+    .status-indicator{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}.status-idle{background:#9ca3af}.status-listening{background:#ef4444}.status-processing{background:#f59e0b}.status-ready{background:#10b981}.task-completed{animation:highlight 1s}
+    /* Psychology & Response Parts */
+    .psychology-note{margin-top:10px;padding:10px 12px;background:#f3f4f6;border-left:3px solid var(--success);border-radius:0 4px 4px 0;font-size:13px;color:var(--muted);line-height:1.4}.psychology-note::before{content:'💡 The Idea Behind This: ';font-weight:600;color:#4b5563;display:block;margin-bottom:4px}
+    .response-empathy { color: #1e40af; }.response-safety-crisis { color: var(--danger); font-weight: 600; }.response-suggestion { font-style: italic; color: var(--muted); padding-left: 12px; border-left: 2px solid var(--border); }.response-task-instruction { font-weight: 500; }
+    /* Loader */
+    .loader{border:3px solid #f3f3f3;border-top:3px solid var(--accent);border-radius:50%;width:18px;height:18px;animation:spin 1s linear infinite;display:none}.btn-text{transition:opacity .2s}.loading .loader{display:block;position:absolute}.loading .btn-text{opacity:0;}
+    /* Custom Alert Modal */
+    .modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:1000}
+    .modal-box{background:var(--card);padding:24px;border-radius:12px;max-width:400px;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.1)}.modal-box h3{margin-bottom:12px;font-size:18px}.modal-box p{margin-bottom:20px;color:var(--muted)}.modal-box .modal-actions{display:flex;justify-content:center;gap:12px}
+    @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(239,68,68,.4)}70%{box-shadow:0 0 0 10px rgba(239,68,68,0)}100%{box-shadow:0 0 0 0 rgba(239,68,68,0)}}@keyframes highlight{0%{background:#dcfce7}100%{background:#f0f9ff}}@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
   </style>
 </head>
 <body>
   <div class="container">
     <header><h1>Empathetic AI — Voice Therapy Session</h1></header>
 
-    <div class="safety-alert" id="safetyAlert">
-      <strong>Immediate Help Needed:</strong> If you're in crisis, contact local emergency services or a crisis help line immediately (e.g., in the U.S. call 988). This app is not a replacement for professional help.
-    </div>
-
-    <!-- *** NEW: Session Setup Controls *** -->
-    <div class="session-setup" id="sessionSetup">
-      <div>
-        <label for="languageSelect" class="small">Language:</label>
-        <select id="languageSelect">
-          <option value="en-US" selected>English</option>
-          <option value="hi-IN">Hindi (हिन्दी)</option>
-        </select>
-      </div>
-      <div class="gender-options">
-        <span class="small">Your Gender (for AI voice selection):</span>
-        <label><input type="radio" name="userGender" value="female" checked> Female</label>
-        <label><input type="radio" name="userGender" value="male"> Male</label>
-        <label><input type="radio" name="userGender" value="other"> Other / Prefer not to say</label>
-      </div>
-       <button id="startSession" class="primary" style="margin-left: auto;">Start New Session</button>
-    </div>
-
-    <div class="controls hidden" id="sessionControls">
-      <button id="endSession" disabled>End Session</button>
-      <div id="sessionId" class="small" style="margin-left:auto;color:var(--muted)">(no active session)</div>
-    </div>
-
-    <div class="recording hidden" id="recordingControls">
-      <button id="startRec">Start Recording</button>
-      <button id="stopRec" disabled class="danger">Stop Recording</button>
-      <button id="submitRec" disabled class="primary">Submit Recording</button>
-      <div style="display:flex;align-items:center;gap:6px;margin-left:auto;">
-        <span class="status-indicator status-idle" id="statusIndicator"></span>
-        <span id="recStatus" class="small">Ready to record</span>
+    <!-- AUTHENTICATION CONTAINER -->
+    <div id="authContainer">
+      <div class="auth-container">
+        <!-- Login Form -->
+        <form id="loginForm" class="auth-form">
+          <h2>Welcome Back</h2>
+          <input type="text" id="loginUsername" placeholder="Username" required>
+          <input type="password" id="loginPassword" placeholder="Password" required>
+          <button type="submit" class="primary"><span class="btn-text">Login</span><div class="loader"></div></button>
+          <div class="form-footer">
+            Don't have an account? <a id="showSignupLink">Create one</a>
+          </div>
+        </form>
+        <!-- Signup Form -->
+        <form id="signupForm" class="auth-form hidden">
+          <h2>Create Anonymous Account</h2>
+          <input type="text" id="signupUsername" placeholder="Username" required>
+          <input type="password" id="signupPassword" placeholder="Password (min 6 chars)" required>
+          <input type="password" id="signupConfirmPassword" placeholder="Confirm Password" required>
+          <button type="submit" class="primary"><span class="btn-text">Create Account</span><div class="loader"></div></button>
+          <div class="form-footer">
+            Already have an account? <a id="showLoginLink">Login</a>
+          </div>
+        </form>
       </div>
     </div>
 
-    <div class="taskbar hidden" id="taskControls">
-      <button id="markDone" class="success" disabled>I'm Done</button>
-      <div id="timerBox" class="hidden"><div class="chip">Timer</div><span class="timer-value" id="timerValue">60s</span></div>
-      <div id="activeTaskInfo" class="task-info"></div>
-    </div>
+    <!-- MAIN APP CONTAINER -->
+    <div id="appContainer" class="hidden">
+      <div class="controls">
+        <button id="logoutBtn">Logout</button>
+        <button id="endSession" disabled>End Session</button>
+        <div id="sessionId" class="small" style="margin-left:auto;color:var(--muted)">(no active session)</div>
+      </div>
 
-    <h2 class="section-title">Conversation</h2>
-    <div id="conversation"></div>
+      <div class="safety-alert hidden" id="safetyAlert">
+        <strong>Immediate Help Needed:</strong> If you're in crisis, contact local emergency services or a crisis help line immediately (e.g., in the U.S. call 988). This app is not a replacement for professional help.
+      </div>
+      
+      <!-- Session Setup -->
+      <div class="session-setup" id="sessionSetup">
+        <div>
+          <label for="languageSelect" class="small">Language:</label>
+          <select id="languageSelect">
+            <option value="en-US" selected>English</option>
+            <option value="hi-IN">Hindi (हिन्दी)</option>
+          </select>
+        </div>
+        <div class="gender-options">
+          <span class="small">Your Gender (for AI voice selection):</span>
+          <label><input type="radio" name="userGender" value="female" checked> Female</label>
+          <label><input type="radio" name="userGender" value="male"> Male</label>
+          <label><input type="radio" name="userGender" value="other"> Other / Prefer not to say</label>
+        </div>
+        <button id="startSession" class="primary" style="margin-left: auto;"><span class="btn-text">Start New Session</span><div class="loader"></div></button>
+      </div>
+      
+      <!-- Recording Controls -->
+      <div class="recording hidden" id="recordingControls">
+        <button id="startRec">Start Recording</button>
+        <button id="stopRec" disabled class="danger">Stop Recording</button>
+        <button id="submitRec" disabled class="primary"><span class="btn-text">Submit Recording</span><div class="loader"></div></button>
+        <div style="display:flex;align-items:center;gap:6px;margin-left:auto;">
+          <span class="status-indicator status-idle" id="statusIndicator"></span>
+          <span id="recStatus" class="small">Ready to record</span>
+        </div>
+      </div>
 
-    <div class="debug-section">
-      <h2 class="section-title">Therapy Pipeline / Debug</h2>
-      <pre id="pipeline">(waiting for session...)</pre>
-      <div style="margin-top:8px;">
-        <label class="small"><input type="checkbox" id="showDebugRaw"> Show raw debug payloads</label>
+      <!-- Task Controls -->
+      <div class="taskbar hidden" id="taskControls">
+        <button id="markDone" class="success" disabled><span class="btn-text">I'm Done</span><div class="loader"></div></button>
+        <div id="timerBox" class="hidden"><div class="chip">Timer</div><span class="timer-value" id="timerValue">60s</span></div>
+        <div id="activeTaskInfo" class="task-info"></div>
+      </div>
+
+      <h2 class="section-title">Conversation</h2>
+      <div id="conversation"></div>
+
+      <div class="debug-section">
+        <h2 class="section-title">Therapy Pipeline / Debug</h2>
+        <pre id="pipeline">(waiting for session...)</pre>
+        <div><label class="small"><input type="checkbox" id="showDebugRaw"> Show raw debug payloads</label></div>
       </div>
     </div>
+    
     <footer>
       <p>This is a supportive tool, not a replacement for professional mental health care. If you're in crisis, please contact a mental health professional or call your local emergency number.</p>
     </footer>
   </div>
 
 <script>
+let currentUserId = null;
 let sessionId = null;
 let mediaRecorder = null;
 let audioChunks = [];
 let activeTask = null;
 let timerInterval = null;
 let timerRemaining = 0;
-let isProcessing = false;
 
-// UI Elements
+// --- DOM Elements ---
+const authContainer = document.getElementById('authContainer');
+const appContainer = document.getElementById('appContainer');
+const loginForm = document.getElementById('loginForm');
+const signupForm = document.getElementById('signupForm');
+const showSignupLink = document.getElementById('showSignupLink');
+const showLoginLink = document.getElementById('showLoginLink');
 const startSessionBtn = document.getElementById('startSession');
 const endSessionBtn = document.getElementById('endSession');
+const logoutBtn = document.getElementById('logoutBtn');
 const startRecBtn = document.getElementById('startRec');
 const stopRecBtn = document.getElementById('stopRec');
 const submitRecBtn = document.getElementById('submitRec');
@@ -106,46 +169,135 @@ const taskControls = document.getElementById('taskControls');
 const safetyAlert = document.getElementById('safetyAlert');
 const showDebugRaw = document.getElementById('showDebugRaw');
 const languageSelect = document.getElementById('languageSelect');
-
-// *** NEW: Control visibility of main sections ***
 const sessionSetupEl = document.getElementById('sessionSetup');
-const sessionControlsEl = document.getElementById('sessionControls');
 const recordingControlsEl = document.getElementById('recordingControls');
 
-function updateStatus(status, processing=false){ }
-function clearActiveTask(){ }
-function startCountdown(durationSec, task){ }
-function appendTurn(who, data, meta = null){ }
+// --- UI Helpers ---
+const showAlert = (title, message, type = 'info') => {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    const typeColor = type === 'error' ? 'var(--danger)' : type === 'success' ? 'var(--success)' : 'var(--accent)';
+    modal.innerHTML = `
+        <div class="modal-box">
+            <h3 style="color:${typeColor};">${title}</h3>
+            <p>${message}</p>
+            <div class="modal-actions">
+                <button class="primary" onclick="this.closest('.modal-overlay').remove()">OK</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+};
 
-// Copy-paste the unchanged JS functions here to save space in the diff
-updateStatus = (status, processing=false)=>{ recStatus.textContent=status;statusIndicator.className='status-indicator';if(processing)statusIndicator.classList.add('status-processing');else if(status.includes('Recording'))statusIndicator.classList.add('status-listening');else if(status.includes('Ready'))statusIndicator.classList.add('status-idle');else statusIndicator.classList.add('status-ready'); };
-clearActiveTask = ()=>{ if(timerInterval){clearInterval(timerInterval);timerInterval=null;} timerBox.classList.add('hidden');activeTaskInfo.textContent='';activeTask=null;markDoneBtn.disabled=true;taskControls.classList.add('hidden'); };
-startCountdown = (durationSec,task)=>{ clearActiveTask();timerRemaining=Math.max(0,parseInt(durationSec||0));activeTask=task;taskControls.classList.remove('hidden');if(timerRemaining<=0){markDoneBtn.disabled=false;return;} timerBox.classList.remove('hidden');timerValue.textContent=`${timerRemaining}s`;activeTaskInfo.textContent=`Active task: ${task.type||'exercise'} • ${timerRemaining}s remaining`;markDoneBtn.disabled=true;timerInterval=setInterval(()=>{ timerRemaining-=1;timerValue.textContent=`${timerRemaining}s`;activeTaskInfo.textContent=`Active task: ${task.type||'exercise'} • ${timerRemaining}s remaining`;if(timerRemaining<=0){clearInterval(timerInterval);timerInterval=null;timerValue.textContent='Done!';activeTaskInfo.textContent=`Active task: ${task.type||'exercise'} • completed`;markDoneBtn.disabled=false;}},1000); };
-appendTurn = (who,data,meta=null)=>{ const d=document.createElement('div');d.className='turn '+(who==='ai'?'ai':who==='user'?'user':'system');const speakerEl=document.createElement('div');speakerEl.className='speaker';speakerEl.innerHTML=(who==='ai')?'AI Therapist':(who==='user')?'You':'System';const messageEl=document.createElement('div');messageEl.className='message';const replyData=data.reply_structured||data;if(who==='ai'&&replyData.response_parts&&Array.isArray(replyData.response_parts)){replyData.response_parts.forEach(part=>{const partEl=document.createElement('div');partEl.className=`response-${part.type||'plain'}`;partEl.innerText=part.text;messageEl.appendChild(partEl);});}else{const text=data.text||"(no text)";messageEl.innerText=text;} d.appendChild(speakerEl);d.appendChild(messageEl);if(who==='ai'&&replyData.task_meta&&replyData.task_meta.detail){const instructionsEl=document.createElement('div');instructionsEl.className='task-instructions';instructionsEl.innerText=replyData.task_meta.detail;d.appendChild(instructionsEl);} if(who==='ai'&&replyData.psychology_behind_it){const p=document.createElement('div');p.className='psychology-note';p.innerText=replyData.psychology_behind_it;d.appendChild(p);} if(meta){const m=document.createElement('div');m.className='meta';m.innerText=meta;d.appendChild(m);} conv.appendChild(d);conv.scrollTop=conv.scrollHeight;if(who==='ai'&&data.tts_b64){try{const byteChars=atob(data.tts_b64);const byteNumbers=new Array(byteChars.length);for(let i=0;i<byteChars.length;i++){byteNumbers[i]=byteChars.charCodeAt(i);} const byteArray=new Uint8Array(byteNumbers);const blob=new Blob([byteArray],{type:'audio/mpeg'});const url=URL.createObjectURL(blob);const audio=new Audio(url);audio.play().catch(e=>console.warn("TTS playback failed",e));audio.onended=()=>{URL.revokeObjectURL(url);const timerCard=(replyData.display_cards||[]).find(c=>c.type==='timer');if(timerCard){const task={task_id:(replyData.task_meta?.task_id||`task_${Date.now()}`),type:(replyData.task_meta?.type||'exercise'),detail:(replyData.task_meta?.detail||'Follow the spoken instructions.'),duration_sec:timerCard.duration_sec};startCountdown(timerCard.duration_sec,task);}}; }catch(e){console.warn("TTS playback preparation failed",e);}}};
+const showLoader = (button, show) => {
+    button.classList.toggle('loading', show);
+    button.disabled = show;
+};
 
-/* --- Session Controls --- */
-// *** MODIFIED: startSessionBtn.onclick now sends language and gender ***
+const updateStatus = (status, processing=false)=>{ recStatus.textContent=status;statusIndicator.className='status-indicator';if(processing)statusIndicator.classList.add('status-processing');else if(status.includes('Recording'))statusIndicator.classList.add('status-listening');else if(status.includes('Ready'))statusIndicator.classList.add('status-idle');else statusIndicator.classList.add('status-ready'); };
+
+const clearActiveTask = ()=>{ if(timerInterval){clearInterval(timerInterval);timerInterval=null;} timerBox.classList.add('hidden');activeTaskInfo.textContent='';activeTask=null;markDoneBtn.disabled=true;taskControls.classList.add('hidden'); };
+
+const startCountdown = (durationSec,task)=>{ clearActiveTask();timerRemaining=Math.max(0,parseInt(durationSec||0));activeTask=task;taskControls.classList.remove('hidden');if(timerRemaining<=0){markDoneBtn.disabled=false;return;} timerBox.classList.remove('hidden');timerValue.textContent=`${timerRemaining}s`;activeTaskInfo.textContent=`Active task: ${task.type||'exercise'} • ${timerRemaining}s remaining`;markDoneBtn.disabled=true;timerInterval=setInterval(()=>{ timerRemaining-=1;timerValue.textContent=`${timerRemaining}s`;activeTaskInfo.textContent=`Active task: ${task.type||'exercise'} • ${timerRemaining}s remaining`;if(timerRemaining<=0){clearInterval(timerInterval);timerInterval=null;timerValue.textContent='Done!';activeTaskInfo.textContent=`Active task: ${task.type||'exercise'} • completed`;markDoneBtn.disabled=false;}},1000); };
+
+const appendTurn = (who,data,meta=null)=>{ const turnEl=document.createElement('div');turnEl.className=`turn ${who}`;const contentEl=document.createElement('div');const speakerEl=document.createElement('div');speakerEl.className='speaker';speakerEl.innerHTML=(who==='ai')?'AI Therapist':(who==='user')?'You':'System';const messageEl=document.createElement('div');messageEl.className='message';const replyData=data.reply_structured||data;if(who==='ai'&&replyData.response_parts&&Array.isArray(replyData.response_parts)){replyData.response_parts.forEach(part=>{const partEl=document.createElement('div');partEl.className=`response-${part.type||'plain'}`;partEl.innerText=part.text;messageEl.appendChild(partEl);});}else{messageEl.innerText=data.text||"(no text)";} contentEl.appendChild(speakerEl);contentEl.appendChild(messageEl);if(who==='ai'&&replyData.task_meta&&replyData.task_meta.detail){const i=document.createElement('div');i.className='task-instructions';i.innerText=replyData.task_meta.detail;contentEl.appendChild(i);} if(who==='ai'&&replyData.psychology_behind_it){const p=document.createElement('div');p.className='psychology-note';p.innerText=replyData.psychology_behind_it;contentEl.appendChild(p);} if(meta){const m=document.createElement('div');m.className='meta';m.innerText=meta;contentEl.appendChild(m);} turnEl.appendChild(contentEl);conv.appendChild(turnEl);conv.scrollTop=conv.scrollHeight;if(who==='ai'&&data.tts_b64){try{const byteChars=atob(data.tts_b64);const byteNumbers=new Array(byteChars.length);for(let i=0;i<byteChars.length;i++){byteNumbers[i]=byteChars.charCodeAt(i);} const byteArray=new Uint8Array(byteNumbers);const blob=new Blob([byteArray],{type:'audio/mpeg'});const url=URL.createObjectURL(blob);const audio=new Audio(url);audio.play().catch(e=>console.warn("TTS playback failed",e));audio.onended=()=>{URL.revokeObjectURL(url);const timerCard=(replyData.display_cards||[]).find(c=>c.type==='timer');if(timerCard){const task={task_id:(replyData.task_meta?.task_id||`task_${Date.now()}`),type:(replyData.task_meta?.type||'exercise'),detail:(replyData.task_meta?.detail||'Follow spoken instructions.'),duration_sec:timerCard.duration_sec};startCountdown(timerCard.duration_sec,task);}}; }catch(e){console.warn("TTS playback preparation failed",e);}}};
+
+// --- App Logic ---
+showSignupLink.onclick = () => { loginForm.classList.add('hidden'); signupForm.classList.remove('hidden'); };
+showLoginLink.onclick = () => { signupForm.classList.add('hidden'); loginForm.classList.remove('hidden'); };
+
+signupForm.onsubmit = async (e) => {
+    e.preventDefault();
+    const btn = signupForm.querySelector('button');
+    showLoader(btn, true);
+    
+    const isConfirmed = confirm("IMPORTANT: This is an anonymous account. We cannot recover your password if you forget it. Please take a screenshot of your username and password and keep it safe before continuing.");
+    if (!isConfirmed) {
+        showLoader(btn, false);
+        return;
+    }
+
+    const form = new FormData();
+    form.append('username', document.getElementById('signupUsername').value);
+    form.append('password', document.getElementById('signupPassword').value);
+    form.append('confirm_password', document.getElementById('signupConfirmPassword').value);
+    
+    try {
+        const res = await fetch('/signup', { method: 'POST', body: form });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Signup failed');
+        showAlert('Success', 'Your account has been created. Please log in.', 'success');
+        signupForm.reset();
+        showLoginLink.onclick();
+    } catch (err) {
+        showAlert('Signup Error', err.message, 'error');
+    } finally {
+        showLoader(btn, false);
+    }
+};
+
+loginForm.onsubmit = async (e) => {
+    e.preventDefault();
+    const btn = loginForm.querySelector('button');
+    showLoader(btn, true);
+
+    const form = new FormData();
+    form.append('username', document.getElementById('loginUsername').value);
+    form.append('password', document.getElementById('loginPassword').value);
+
+    try {
+        const res = await fetch('/login', { method: 'POST', body: form });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Login failed');
+        currentUserId = data.user_id;
+        authContainer.classList.add('hidden');
+        appContainer.classList.remove('hidden');
+    } catch (err) {
+        showAlert('Login Error', err.message, 'error');
+    } finally {
+        showLoader(btn, false);
+    }
+};
+
+logoutBtn.onclick = () => {
+    if (sessionId) {
+        // Optionally end session on the backend first
+        endSessionBtn.onclick();
+    }
+    currentUserId = null;
+    sessionId = null;
+    appContainer.classList.add('hidden');
+    authContainer.classList.remove('hidden');
+    loginForm.reset();
+    signupForm.reset();
+    conv.innerHTML = '';
+    pipeline.textContent = '';
+    sessionSetupEl.classList.remove('hidden');
+    recordingControlsEl.classList.add('hidden');
+    endSessionBtn.disabled = true;
+};
+
 startSessionBtn.onclick = async () => {
-  if(isProcessing) return;
-  isProcessing = true;
-  startSessionBtn.disabled = true;
+  if (!currentUserId) {
+    showAlert('Error', 'No user is logged in.', 'error');
+    return;
+  }
+  const btn = startSessionBtn;
+  showLoader(btn, true);
   updateStatus("Starting session...", true);
   try {
     const form = new FormData();
-    const selectedGender = document.querySelector('input[name="userGender"]:checked').value;
+    form.append('user_id', currentUserId);
     form.append('language', languageSelect.value);
-    form.append('user_gender', selectedGender);
+    form.append('user_gender', document.querySelector('input[name="userGender"]:checked').value);
 
     const res = await fetch('/start_session', { method:'POST', body: form });
-    if(!res.ok) throw new Error(`Server error: ${res.status}`);
+    if(!res.ok) throw new Error(`Server error: ${await res.text()}`);
     const j = await res.json();
     sessionId = j.session_id;
 
-    // UI State changes
     sessionSetupEl.classList.add('hidden');
-    sessionControlsEl.classList.remove('hidden');
     recordingControlsEl.classList.remove('hidden');
-    
     sessionIdEl.textContent = `Session: ${sessionId.substring(0,10)}...`;
     conv.innerHTML = "";
     pipeline.textContent = "(new session started)";
@@ -154,30 +306,133 @@ startSessionBtn.onclick = async () => {
     endSessionBtn.disabled = false;
     stopRecBtn.disabled = true;
     submitRecBtn.disabled = true;
-    markDoneBtn.disabled = true;
     clearActiveTask();
     safetyAlert.classList.add('hidden');
     updateStatus("Ready to record - press Start Recording", false);
   } catch(e){
-    console.error("Session start failed", e);
-    updateStatus(`Error: ${e.message || 'Failed to start session'}`, false);
-    alert("Failed to start session. Please try again.");
-    startSessionBtn.disabled = false; // Re-enable on failure
+    showAlert('Error', e.message || 'Failed to start session', 'error');
   } finally {
-    isProcessing = false;
+    showLoader(btn, false);
   }
 };
 
 endSessionBtn.onclick = async () => { 
-    if(!sessionId||isProcessing)return;isProcessing=true;endSessionBtn.disabled=true;updateStatus("Ending session...",true);try{const form=new FormData();form.append('session_id',sessionId);const res=await fetch('/end_session',{method:'POST',body:form});const j=await res.json();appendTurn('ai',{reply_structured:j.closing_reply,tts_b64:j.tts_b64},"Session ended");sessionId=null;sessionIdEl.textContent="(no active session)";startRecBtn.disabled=true;stopRecBtn.disabled=true;submitRecBtn.disabled=true;endSessionBtn.disabled=true;markDoneBtn.disabled=true;clearActiveTask();safetyAlert.classList.add('hidden');updateStatus("Session ended. Click 'Start New Session' to begin again.",false);sessionSetupEl.classList.remove('hidden');sessionControlsEl.classList.add('hidden');recordingControlsEl.classList.add('hidden');}catch(e){console.error("Session end failed",e);updateStatus(`Error ending session: ${e.message}`,false);}finally{isProcessing=false;endSessionBtn.disabled=false;}
+    if(!sessionId) return;
+    showLoader(endSessionBtn, true);
+    updateStatus("Ending session...", true);
+    try {
+        const form = new FormData();
+        form.append('session_id', sessionId);
+        const res = await fetch('/end_session',{method:'POST',body:form});
+        const j = await res.json();
+        appendTurn('ai',{reply_structured:j.closing_reply,tts_b64:j.tts_b64},"Session ended");
+        sessionId=null;
+        sessionIdEl.textContent="(no active session)";
+        sessionSetupEl.classList.remove('hidden');
+        recordingControlsEl.classList.add('hidden');
+        startRecBtn.disabled = true;
+        endSessionBtn.disabled = true;
+        clearActiveTask();
+        updateStatus("Session ended. Start a new one when you're ready.", false);
+    } catch(e){
+        showAlert('Error', `Could not end session: ${e.message}`, 'error');
+    } finally {
+        showLoader(endSessionBtn, false);
+    }
 };
 
-/* Recording controls */
-startRecBtn.onclick = async () => { if(isProcessing)return;isProcessing=true;updateStatus("Requesting microphone access...",true);audioChunks=[];try{const stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});mediaRecorder=new MediaRecorder(stream,{mimeType:'audio/webm;codecs=opus'});mediaRecorder.ondataavailable=e=>{if(e.data&&e.data.size>0)audioChunks.push(e.data);};mediaRecorder.onstop=()=>{updateStatus("Recording stopped. Press Submit to process.",false);submitRecBtn.disabled=false;};mediaRecorder.onstart=()=>{updateStatus("Recording... (press Stop when finished)",false);startRecBtn.classList.add('recording-active');};mediaRecorder.start(250);startRecBtn.disabled=true;stopRecBtn.disabled=false;submitRecBtn.disabled=true;}catch(e){console.error("Microphone access error",e);updateStatus(`Mic error: ${e.message||'Access denied'}`,false);if(e.name==='NotAllowedError')alert("Microphone access is required. Please allow microphone access in your browser settings.");}finally{isProcessing=false;}};
-stopRecBtn.onclick = () => { if(mediaRecorder&&mediaRecorder.state==="recording"){mediaRecorder.stop();mediaRecorder.stream.getTracks().forEach(track=>track.stop());startRecBtn.disabled=false;stopRecBtn.disabled=true;startRecBtn.classList.remove('recording-active');}};
-submitRecBtn.onclick = async () => { if(!audioChunks.length||!sessionId||isProcessing)return;isProcessing=true;submitRecBtn.disabled=true;updateStatus("Uploading & processing audio...",true);try{const blob=new Blob(audioChunks,{type:'audio/webm;codecs=opus'});const form=new FormData();form.append('file',blob,'recording.webm');form.append('session_id',sessionId);const res=await fetch('/process_audio',{method:'POST',body:form});if(!res.ok){const err=await res.text();throw new Error(`Server error: ${res.status} - ${err.substr(0,120)}`);} const j=await res.json();updateStatus("Processing complete",false);if(showDebugRaw.checked&&j._debug)pipeline.textContent=JSON.stringify(j,null,2);else pipeline.textContent=JSON.stringify({audio_output:j.audio_output,decision:j.decision,reply:j.reply},null,2);appendTurn('user',{text:j.audio_output.transcript||"(no speech detected)"},`Emotion: ${j.audio_output.final_emotion} (${(j.audio_output.confidence*100).toFixed(1)}%)`);if(j.audio_output.safety_flag)safetyAlert.classList.remove('hidden');appendTurn('ai',{reply_structured:j.reply,tts_b64:j.tts_b64},`Decision: ${j.decision.decision||'n/a'}`);audioChunks=[];stopRecBtn.disabled=true;}catch(e){console.error("Audio processing failed",e);updateStatus(`Error: ${e.message||'Processing failed'}`,false);alert("Failed to process audio. Please try recording again.");}finally{isProcessing=false;submitRecBtn.disabled=false;}};
-markDoneBtn.onclick = async () => { if(!sessionId||!activeTask||isProcessing)return;isProcessing=true;markDoneBtn.disabled=true;updateStatus("Recording task completion...",true);try{const form=new FormData();form.append('session_id',sessionId);form.append('task_id',activeTask.task_id);const res=await fetch('/task_done',{method:'POST',body:form});if(!res.ok)throw new Error(`Server error: ${res.status}`);const j=await res.json();const turns=conv.querySelectorAll('.turn');if(turns.length>0)turns[turns.length-1].classList.add('task-completed');appendTurn('system',{text:'Task completed'},'Therapeutic exercise finished');appendTurn('ai',{reply_structured:j.reply,tts_b64:j.tts_b64},'Follow-up response');pipeline.textContent=JSON.stringify({decision:j.decision,reply:j.reply},null,2);clearActiveTask();updateStatus("Ready for next interaction",false);}catch(e){console.error("Task completion failed",e);updateStatus(`Error: ${e.message||'Task completion failed'}`,false);alert("Failed to record task completion. Please try again.");markDoneBtn.disabled=false;}finally{isProcessing=false;}};
-window.addEventListener("beforeunload",()=>{ if(mediaRecorder&&mediaRecorder.state==="recording"){try{mediaRecorder.stop();mediaRecorder.stream.getTracks().forEach(track=>track.stop());}catch(e){}}});
+/* --- Recording & Submission (largely unchanged logic, just with loaders) --- */
+startRecBtn.onclick = async () => {
+    if (startRecBtn.disabled) return;
+    updateStatus("Requesting microphone...", true);
+    audioChunks = [];
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
+        mediaRecorder = new MediaRecorder(stream, {mimeType:'audio/webm;codecs=opus'});
+        mediaRecorder.ondataavailable = e => { if (e.data && e.data.size > 0) audioChunks.push(e.data); };
+        mediaRecorder.onstop = () => { updateStatus("Recording stopped. Press Submit to process.", false); submitRecBtn.disabled = false; };
+        mediaRecorder.onstart = () => { updateStatus("Recording... (press Stop when finished)", false); startRecBtn.classList.add('recording-active'); };
+        mediaRecorder.start(250);
+        startRecBtn.disabled = true;
+        stopRecBtn.disabled = false;
+        submitRecBtn.disabled = true;
+    } catch (e) {
+        showAlert('Microphone Error', e.message || 'Microphone access was denied.', 'error');
+        updateStatus(`Mic error: ${e.message}`, false);
+    }
+};
+
+stopRecBtn.onclick = () => {
+    if(mediaRecorder && mediaRecorder.state === "recording"){
+        mediaRecorder.stop();
+        mediaRecorder.stream.getTracks().forEach(track => track.stop());
+        startRecBtn.disabled = false;
+        stopRecBtn.disabled = true;
+        startRecBtn.classList.remove('recording-active');
+    }
+};
+
+submitRecBtn.onclick = async () => {
+    if(!audioChunks.length || !sessionId) return;
+    const btn = submitRecBtn;
+    showLoader(btn, true);
+    updateStatus("Uploading & processing audio...", true);
+    try {
+        const blob = new Blob(audioChunks, {type:'audio/webm;codecs=opus'});
+        const form = new FormData();
+        form.append('file', blob, 'recording.webm');
+        form.append('session_id', sessionId);
+        const res = await fetch('/process_audio', {method:'POST', body:form});
+        if(!res.ok) { const err = await res.json(); throw new Error(`Server error: ${res.status} - ${err.detail}`); } 
+        const j = await res.json();
+        updateStatus("Processing complete", false);
+        pipeline.textContent = JSON.stringify({audio_output:j.audio_output,decision:j.decision,reply:j.reply}, null, 2);
+        appendTurn('user', {text: j.audio_output.transcript || "(no speech detected)"}, `Emotion: ${j.audio_output.final_emotion} (${(j.audio_output.confidence*100).toFixed(1)}%)`);
+        if(j.audio_output.safety_flag) safetyAlert.classList.remove('hidden');
+        appendTurn('ai', {reply_structured:j.reply, tts_b64:j.tts_b64}, `Decision: ${j.decision.decision || 'n/a'}`);
+        audioChunks = [];
+        stopRecBtn.disabled = true;
+    } catch(e) {
+        showAlert('Processing Error', e.message || 'Failed to process audio.', 'error');
+        updateStatus(`Error: ${e.message}`, false);
+    } finally {
+        showLoader(btn, false);
+    }
+};
+
+markDoneBtn.onclick = async () => {
+    if(!sessionId || !activeTask) return;
+    const btn = markDoneBtn;
+    showLoader(btn, true);
+    updateStatus("Recording task completion...", true);
+    try {
+        const form = new FormData();
+        form.append('session_id', sessionId);
+        form.append('task_id', activeTask.task_id);
+        const res = await fetch('/task_done', {method:'POST', body:form});
+        if(!res.ok) throw new Error(`Server error: ${await res.text()}`);
+        const j = await res.json();
+        const turns=conv.querySelectorAll('.turn');
+        if(turns.length>0) turns[turns.length-1].classList.add('task-completed');
+        appendTurn('system', {text:'Task completed'}, 'Therapeutic exercise finished');
+        appendTurn('ai', {reply_structured:j.reply, tts_b64:j.tts_b64}, 'Follow-up response');
+        pipeline.textContent = JSON.stringify({decision:j.decision, reply:j.reply}, null, 2);
+        clearActiveTask();
+        updateStatus("Ready for next interaction", false);
+    } catch(e) {
+        showAlert('Task Error', e.message || 'Failed to record task completion.', 'error');
+        markDoneBtn.disabled = false;
+    } finally {
+        showLoader(btn, false);
+    }
+};
+
+window.addEventListener("beforeunload", (e) => {
+    if (sessionId) {
+        e.preventDefault();
+        return e.returnValue = 'You have an active session. Are you sure you want to leave?';
+    }
+});
 </script>
 </body>
 </html>

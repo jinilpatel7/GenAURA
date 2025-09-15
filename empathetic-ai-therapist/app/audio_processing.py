@@ -8,6 +8,11 @@ import librosa
 import scipy.signal
 import json
 from datetime import datetime
+
+# NEW: Suppress the pkg_resources deprecation warning from librosa
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning, module='librosa')
+
 from .gcp_clients import transcribe_wav_bytes, vertex_generate
 from .utils import detect_safety
 
@@ -119,7 +124,6 @@ def classify_emotion_text(transcript: str):
         parsed = json.loads(jt)
     except Exception:
         jt_fixed = jt.replace("'", "\"")
-        # *** MODIFIED: Corrected regex for trailing commas ***
         jt_fixed = re.sub(r",\s*([}```])", r"\1", jt_fixed)
         try:
             parsed = json.loads(jt_fixed)
