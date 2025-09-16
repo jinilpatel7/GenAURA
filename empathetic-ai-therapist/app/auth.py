@@ -1,4 +1,3 @@
-# empathetic-ai-therapist/app/auth.py
 import logging
 from datetime import datetime
 
@@ -59,7 +58,13 @@ async def signup(
         user_data = {
             "username": username,
             "hashed_password": hashed_pwd,
-            "created_at": datetime.utcnow().isoformat() + "Z"
+            "created_at": datetime.utcnow().isoformat() + "Z",
+            # REMOVED: Email preferences are no longer stored for anonymity.
+            # NEW: Initialize the wellness cache structure for performance optimization
+            "wellness_cache": {
+                "last_updated_utc": None,
+                "data": None
+            }
         }
         user_ref.set(user_data)
         _logger.info("New user created successfully: %s", username)

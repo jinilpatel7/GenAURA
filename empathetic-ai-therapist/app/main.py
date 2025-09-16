@@ -9,9 +9,10 @@ import base64
 import uuid
 from datetime import datetime
 from typing import Any, Dict
+import asyncio
 
 from dotenv import load_dotenv
-import pytz # NEW: Import for timezone handling
+import pytz
 
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.responses import HTMLResponse, Response
@@ -23,6 +24,7 @@ from .brain1_policy import call_brain1
 from .brain2_response import call_brain2
 from .utils import detect_safety
 from . import auth
+from . import wellness
 
 # Configure logging
 LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO").upper()
@@ -32,6 +34,7 @@ _logger = logging.getLogger(__name__)
 # FastAPI app
 app = FastAPI(title="Empathetic AI Therapist")
 app.include_router(auth.router)
+app.include_router(wellness.router, prefix="/wellness")
 
 # Static files
 import pathlib
@@ -47,7 +50,7 @@ else:
     _logger.warning("Static directory not found at %s", static_dir)
 
 # App-level config
-FIRESTORE_SESSIONS_SUBCOLLECTION = "therapy_sessions" # Name of the sub-collection under a user
+FIRESTORE_SESSIONS_SUBCOLLECTION = "therapy_sessions"
 FIRESTORE_USERS_COLLECTION = "users"
 SESSION_TIMEOUT_MINUTES = int(os.environ.get("SESSION_TIMEOUT_MINUTES", "30"))
 
@@ -63,12 +66,7 @@ CLOSING_MESSAGES = {
     "hi-IN": "आज मेरे साथ अपना समय साझा करने के लिए धन्यवाद। जैसे-जैसे आप अपने दिन में आगे बढ़ें, खुद पर दया करना याद रखें।"
 }
 
-# --- CORRECTED REAL-TIME SAVING HELPER ---
 def _save_turn_to_firestore(session: Dict[str, Any], turn_data: Dict[str, Any]):
-    """
-    Saves a single conversational turn to Firestore in real-time under the correct user.
-    Creates a new session document on the first turn, identified by IST timestamp.
-    """
     user_id = session.get("user_id")
     if not user_id:
         _logger.warning("Cannot save turn to Firestore: missing user_id in session.")
@@ -82,26 +80,18 @@ def _save_turn_to_firestore(session: Dict[str, Any], turn_data: Dict[str, Any]):
 
         from google.cloud import firestore
 
-        # Check if we have already created a Firestore document for this in-memory session
         firestore_doc_id = session.get("firestore_doc_id")
         
         if not firestore_doc_id:
-            # This is the FIRST turn for this session, so create the doc ID.
             utc_now = datetime.utcnow()
             ist_tz = pytz.timezone('Asia/Kolkata')
             ist_now = utc_now.replace(tzinfo=pytz.utc).astimezone(ist_tz)
-            
-            # The document ID is the unique IST timestamp of the session's start
             firestore_doc_id = ist_now.strftime('%Y-%m-%d_%H-%M-%S_IST')
-            
-            # Store this ID back in the in-memory session to use for all subsequent turns
             session["firestore_doc_id"] = firestore_doc_id
             _logger.info("Creating new Firestore session document for user '%s': %s", user_id, firestore_doc_id)
 
-        # Path: /users/{user_id}/therapy_sessions/{ist_timestamp_id}
         doc_ref = client.collection(FIRESTORE_USERS_COLLECTION).document(user_id).collection(FIRESTORE_SESSIONS_SUBCOLLECTION).document(firestore_doc_id)
 
-        # Atomically add the new turn to the 'conversation' array field
         doc_ref.set(
             {"conversation": firestore.ArrayUnion([turn_data])},
             merge=True
@@ -122,7 +112,15 @@ def _cleanup_expired_sessions():
         if (now - session["last_active"]).total_seconds() > SESSION_TIMEOUT_MINUTES * 60
     ]
     for sid in expired_sids:
-        _logger.info("Cleaning up expired session: %s", sid)
+        _logger.info("Session '%s' expired. Generating summary and cleaning up.", sid)
+        session_data = SESSIONS[sid]
+        asyncio.create_task(
+            wellness.generate_session_summary(
+                user_id=session_data.get("user_id"),
+                session_history=session_data.get("history", []),
+                session_start_iso=session_data.get("created_at")
+            )
+        )
         del SESSIONS[sid]
 
 def get_session(session_id: str):
@@ -159,7 +157,6 @@ async def start_session(
     user_gender: str = Form("female")
 ):
     session_id = f"session_{int(datetime.utcnow().timestamp() * 1000)}_{str(uuid.uuid4())[:6]}"
-    # Create the in-memory session object. firestore_doc_id will be added on the first save.
     session = {
         "session_id": session_id, "user_id": user_id, "language": language,
         "user_gender": user_gender, "created_at": datetime.utcnow().isoformat() + "Z",
@@ -170,7 +167,6 @@ async def start_session(
 
     initial_text = INITIAL_GREETINGS.get(language, INITIAL_GREETINGS["en-US"])
     
-    # REAL-TIME SAVE: This will be the first turn, creating the Firestore document.
     _save_turn_to_firestore(session, {"who": "ai", "text": f"--- NEW SESSION STARTED --- {initial_text}", "time": datetime.utcnow().isoformat() + "Z"})
     
     ai_gender = _determine_ai_gender(user_gender)
@@ -200,7 +196,7 @@ def _safe_call_brain2(decision, session_history, language_code):
     except Exception as e:
         _logger.exception("call_brain2 failed: %s", e)
         fallback_text = "Sorry, I'm having a little trouble. Can you say that again?"
-        return {"response_text_concatenated": fallback_text}
+        return {"response_text_concatenated": fallback_text, "response_parts": [{"type": "plain", "text": fallback_text}], "psychology_behind_it": "Fallback due to system error."}
 
 
 @app.post("/process_audio")
@@ -216,7 +212,6 @@ async def process_audio(file: UploadFile = File(...), session_id: str = Form(...
     user_text = audio_output.get("transcript", "(silence)")
     session["history"].append({"who": "user", "text": user_text})
     
-    # REAL-TIME SAVE: Save user's turn
     _save_turn_to_firestore(session, {"who": "user", "text": user_text, "time": datetime.utcnow().isoformat() + "Z"})
 
     decision = _safe_call_brain1(audio_output, session["history"], session.get("technique_history"))
@@ -225,7 +220,6 @@ async def process_audio(file: UploadFile = File(...), session_id: str = Form(...
     ai_text = reply.get("response_text_concatenated", "")
     session["history"].append({"who": "ai", "text": ai_text})
 
-    # REAL-TIME SAVE: Save AI's turn
     _save_turn_to_firestore(session, {"who": "ai", "text": ai_text, "time": datetime.utcnow().isoformat() + "Z"})
     
     ai_gender = _determine_ai_gender(user_gender)
@@ -243,7 +237,6 @@ async def task_done(session_id: str = Form(...), task_id: str = Form(...)):
 
     system_text = f"TASK_COMPLETED:{task_id}"
     session["history"].append({"who": "system", "text": system_text})
-    # REAL-TIME SAVE: Save the system event
     _save_turn_to_firestore(session, {"who": "system", "text": system_text, "time": datetime.utcnow().isoformat() + "Z"})
 
     task_completion_input = {"transcript": "(user just completed the assigned task)"}
@@ -252,14 +245,15 @@ async def task_done(session_id: str = Form(...), task_id: str = Form(...)):
     
     ai_text = reply.get("response_text_concatenated", "")
     session["history"].append({"who": "ai", "text": ai_text})
-    # REAL-TIME SAVE: Save the AI's follow-up
     _save_turn_to_firestore(session, {"who": "ai", "text": ai_text, "time": datetime.utcnow().isoformat() + "Z"})
 
     ai_gender = _determine_ai_gender(user_gender)
     tts_bytes = text_to_speech_bytes(ai_text, lang_code=language, gender=ai_gender) if ai_text else None
     tts_b64 = base64.b64encode(tts_bytes).decode() if tts_bytes else None
 
-    return {"status": "completed", "reply": reply, "tts_b64": tts_b64}
+    # --- THIS IS THE FIX ---
+    # The decision object must be included in the response.
+    return {"status": "completed", "decision": decision, "reply": reply, "tts_b64": tts_b64}
 
 
 @app.post("/end_session")
@@ -270,8 +264,13 @@ async def end_session(session_id: str = Form(...)):
 
     closing_text = CLOSING_MESSAGES.get(language, CLOSING_MESSAGES["en-US"])
     
-    # REAL-TIME SAVE: Save the final closing message
     _save_turn_to_firestore(session, {"who": "ai", "text": f"{closing_text} --- SESSION ENDED ---", "time": datetime.utcnow().isoformat() + "Z"})
+    
+    await wellness.generate_session_summary(
+        user_id=session.get("user_id"),
+        session_history=session.get("history", []),
+        session_start_iso=session.get("created_at")
+    )
     
     ai_gender = _determine_ai_gender(user_gender)
     tts_bytes = text_to_speech_bytes(closing_text, lang_code=language, gender=ai_gender)
@@ -279,7 +278,6 @@ async def end_session(session_id: str = Form(...)):
     
     closing_reply_structured = {"response_parts": [{"type": "plain", "text": closing_text}]}
     
-    # Clean up the in-memory session
     if session_id in SESSIONS:
         del SESSIONS[session_id]
         _logger.info("Session ended and removed from memory: %s", session_id)
@@ -288,8 +286,6 @@ async def end_session(session_id: str = Form(...)):
 
 
 # --- DEBUG ENDPOINTS ---
-# (These remain unchanged)
-
 @app.post("/brain1")
 async def endpoint_brain1(payload: dict):
     try:
@@ -327,9 +323,8 @@ async def get_session_endpoint(session_id: str):
         return {
             "session_id": session["session_id"], "created_at": session["created_at"],
             "last_active": session["last_active"].isoformat() + "Z", "history_count": len(session["history"]),
-            "task_count": len(session["tasks"]), "therapeutic_focus": session["therapeutic_focus"],
-            "emotional_trajectory": session["emotional_trajectory"][-5:],
-            "technique_history": session["technique_history"][-5:]
+            "task_count": len(session["tasks"]),
+            "technique_history": session.get("technique_history", [])[-5:]
         }
     except HTTPException: raise
     except Exception as e:
