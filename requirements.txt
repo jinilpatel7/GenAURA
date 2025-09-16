@@ -1,120 +1,23 @@
-# sounddevice
-# scipy
-# librosa
-# pyAudioAnalysis
-# numpy
-# imbalanced-learn
-# eyed3
-# hmmlearn
-# scikit-learn
-# matplotlib
-# transformers
-# pydub
-# tqdm
-# plotly
-# openai-whisper
+# --- FastAPI Web Framework ---
+fastapi                     # The main web framework
+uvicorn[standard]           # High-performance ASGI server to run the app
+python-multipart            # Required by FastAPI for handling form data and file uploads
 
-# soundfile
-# librosa==0.10.0.post2
+# --- Google Cloud & AI Services ---
+google-cloud-aiplatform     # The official client for Vertex AI (including Generative Models)
+google-cloud-speech         # Client for Google Cloud Speech-to-Text API
+google-cloud-firestore      # Client for Google Cloud Firestore database
+google-cloud-texttospeech   # Client for Google Cloud Text-to-Speech API
+python-dotenv               # For loading environment variables from the .env file
 
-# torch
+# --- Authentication & Security ---
+passlib[bcrypt]             # For hashing and verifying user passwords
 
-# python-dotenv
+# --- Audio & Data Processing ---
+numpy                       # Foundational package for numerical operations (used by librosa)
+librosa                     # For audio analysis (feature extraction)
+soundfile                   # A dependency for librosa to read/write audio files
+scipy                       # For scientific computing, used by librosa for signal processing
+pytz                        # For handling timezones, specifically for Firestore timestamps
 
-
-# google-cloud-speech
-# google-cloud-language
-
-# torchvision
-# torchaudio
-
-# fastapi
-# uvicorn[standard]
-# python-multipart
-# google-cloud-texttospeech
-# google-cloud-firestore
-
-
-
-# imageio-ffmpeg
-# requests
-# google-auth==2.33.0
-
-
-# firebase-admin
-# aiofiles
-
-# langchain
-
-# langchain-core
-# langchain-openai
-# langchain_community
-# langgraph==0.0.35
-# openai==1.44.1
-
-# websockets 
-# webrtcvad
-
-
-
-fastapi==0.101.1
-uvicorn[standard]==0.22.0
-aiofiles==23.1.0
-python-multipart==0.0.6
-jinja2==3.1.2
-numpy==1.26.5
-soundfile==0.12.1
-librosa==0.10.1
-scipy==1.11.2
-google-cloud-speech==2.20.1
-google-cloud-firestore==2.11.0
-google-cloud-storage==2.9.0
-vertexai==0.9.0
-python-dotenv==1.0.1
-
-passlib[bcrypt]
-python-jose[cryptography]
-
-
-# Core application
-fastapi
-uvicorn[standard]
-python-dotenv
-
-# Google Cloud
-google-cloud-speech
-google-cloud-firestore
-google-cloud-texttospeech
-google-cloud-aiplatform
-
-# Audio Processing
-numpy
-librosa
-scipy
-soundfile
-
-# Authentication (New)
-passlib[bcrypt]
-
-# Core application
-fastapi
-uvicorn[standard]
-python-dotenv
-
-# Google Cloud
-google-cloud-speech
-google-cloud-firestore
-google-cloud-texttospeech
-google-cloud-aiplatform
-
-# Audio Processing (Updated librosa version)
-numpy
-librosa==0.10.1
-scipy
-soundfile
-
-# Authentication (Pinned versions for compatibility)
-passlib==5.3.0
-bcrypt==4.0.1
-
-pytz
+# NOTE: our application also requires 'ffmpeg' for audio conversion. This is a system-level dependency, not a Python package. It must be installed separately in your Docker image or on your server.
