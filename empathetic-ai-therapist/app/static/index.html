@@ -2,114 +2,960 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Empathetic AI — Voice Therapy Session</title>
+  <title>HealAura - Your AI Wellness Companion</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
   <script src="https://cdn.jsdelivr.net/npm/d3-cloud@1"></script>
   <style>
-    :root{--bg:#f7f9fc;--card:#fff;--muted:#6b7280;--accent:#2563eb;--success:#10b981;--warning:#f59e0b;--danger:#ef4444;--border:#e6e9ef;--transition:all .2s ease}
-    *{box-sizing:border-box;margin:0;padding:0}body{font-family:Inter,system-ui,Arial,sans-serif;background:var(--bg);margin:0;padding:18px;color:#111;line-height:1.5}
-    .container{max-width:1280px;margin:0 auto}
-    header{display:flex;align-items:center;gap:12px;margin-bottom:24px}h1{font-size:24px;font-weight:600;margin:0}
-    .hidden{display:none!important}
-    .auth-container{max-width:400px;margin:48px auto;background:var(--card);padding:24px;border-radius:12px;border:1px solid var(--border)}
-    .auth-form{display:flex;flex-direction:column;gap:16px}.auth-form input{padding:10px;border:1px solid var(--border);border-radius:8px;font-size:14px}
-    .controls, .session-setup, .recording, .taskbar {display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px;background:var(--card);padding:12px;border-radius:12px;border:1px solid var(--border)}
-    button{background:var(--card);border:1px solid var(--border);padding:10px 16px;border-radius:10px;cursor:pointer;font-weight:500;transition:var(--transition);display:flex;align-items:center;justify-content:center;gap:8px;position:relative}
-    button.primary{background:var(--accent);color:white;border-color:transparent}
-    button.danger{background:var(--danger);color:white;border-color:transparent}
-    button.success{background:var(--success);color:white;border-color:transparent}
-    button:disabled{opacity:.5;cursor:not-allowed}
-    .loader{border:3px solid #f3f3f3;border-top:3px solid var(--accent);border-radius:50%;width:18px;height:18px;animation:spin 1s linear infinite;display:none}.btn-text{transition:opacity .2s}.loading .loader{display:block}.loading .btn-text{opacity:0}
-    .modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:1000}
-    .modal-box{background:var(--card);padding:24px;border-radius:12px;max-width:500px;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.1)}.modal-box h3{margin-bottom:12px;font-size:18px}.modal-box p{margin-bottom:20px;color:var(--muted); text-align: left; white-space: pre-wrap;}.modal-box .modal-actions{display:flex;justify-content:center;gap:12px}
+    :root{
+      --bg: #f9f9f7;
+      --card: #ffffff;
+      --muted: #6b7280;
+      --accent: #ddea6d; /* Vibrant Lime */
+      --accent-dark: #c8d75a;
+      --accent-light: #f5f8e5;
+      --success: #68d391; /* Soft Green */
+      --warning: #f6ad55; /* Soft Orange */
+      --danger: #f08080; /* Light Coral */
+      --growth: #81e6d9; /* Aqua for Growth */
+      --border: #e5e7eb;
+      --text-primary: #2c2c2c;
+      --text-secondary: #555555;
+      --transition: all .3s cubic-bezier(0.4, 0, 0.2, 1);
+      --shadow-sm: 0 1px 2px 0 rgba(0,0,0,0.06);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1);
+      --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);
+    }
     
-    #conversation{background-color:#f9fafb;padding:16px;border-radius:12px;border:1px solid var(--border);height:500px;overflow-y:auto;display:flex;flex-direction:column;gap:20px}
-    .turn{display:flex;gap:12px;max-width:85%}.turn.user{align-self:flex-end;flex-direction:row-reverse}.turn.ai{align-self:flex-start}
-    .avatar{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;color:white;flex-shrink:0}
-    .avatar-ai{background-color:#3b82f6}.avatar-user{background-color:#6366f1}
-    .msg-content{display:flex;flex-direction:column;gap:8px; width: 100%;}.speaker{font-weight:600;font-size:14px;color:#4b5563}
-    .msg-bubble{padding:12px 16px;border-radius:18px;line-height:1.6;position:relative; width: fit-content;}
-    .turn.ai .msg-bubble{background-color:var(--card);border-top-left-radius:4px}.turn.user .msg-bubble{background-color:#eef2ff;border-top-right-radius:4px}
-    .meta{font-size:11px;color:var(--muted);padding:0 8px}
-    .response-question, .response-task_instruction, .response-metacognitive, .response-CBT, .response-follow_up { font-weight: 600; }
-    .response-empathy{font-style:italic;color:#374151}
-    .response-suggestion{font-size:14px;color:var(--muted);margin-top:4px}
-    .task-instructions{margin-top:12px;padding:10px;background-color:#f0f9ff;border-left:3px solid var(--accent);border-radius:4px;font-size:14px}
-    .task-instructions ol{padding-left:20px;margin:0}
-    .psychology-note{padding:10px 12px;border-left-width: 4px;border-radius:0 4px 4px 0;font-size:13px;line-height:1.4;margin-top:4px;}.psychology-note::before{content:'💡 The Idea Behind This: ';font-weight:600;display:block;margin-bottom:4px}
-    .psychology-note--task { border-color: var(--success); background-color: #f0fdf4; } .psychology-note--task::before { color: #15803d; }
-    .psychology-note--follow_up, .psychology-note--metacognitive, .psychology-note--question { border-color: var(--accent); background-color: #eff6ff; } .psychology-note--follow_up::before, .psychology-note--metacognitive::before, .psychology-note--question::before { color: #1d4ed8; }
-    .psychology-note--CBT { border-color: var(--warning); background-color: #fffbeb; } .psychology-note--CBT::before { color: #b45309; }
-    .psychology-note--safety_crisis { border-color: var(--danger); background-color: #fee2e2; } .psychology-note--safety_crisis::before { color: #b91c1c; }
-    .taskbar{justify-content:center;padding:16px}
-    #timerBox{display:inline-flex;align-items:center;gap:10px;background:#f0f9ff;padding:6px 12px;border-radius:8px;border:1px solid #bfdbfe;font-size:14px}
-    .timer-value{font-weight:600;color:#1e40af}
-    .chip{display:inline-block;padding:4px 8px;border-radius:999px;background:#dbeafe;color:#1e40af;font-weight:600;font-size:13px}
-    .recording-active{animation:pulse 2s infinite}@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(239,68,68,.4)}70%{box-shadow:0 0 0 10px rgba(239,68,68,0)}100%{box-shadow:0 0 0 0 rgba(239,68,68,0)}}
-    .status-indicator{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}.status-idle{background:#9ca3af}.status-listening{background:#ef4444}.status-processing{background:#f59e0b}.status-ready{background:#10b981}
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      font-family:'Inter',system-ui,-apple-system,sans-serif;
+      background:var(--bg);
+      margin:0;
+      padding:20px;
+      color:var(--text-primary);
+      line-height:1.6;
+    }
+    
+    .container{max-width:1320px;margin:0 auto}
+    
+    header{
+      display:flex;
+      align-items:center;
+      gap:16px;
+      margin-bottom:32px;
+      padding:24px;
+      background:var(--card);
+      border-radius:20px;
+      box-shadow:var(--shadow-md);
+      border:1px solid var(--border);
+    }
+    
+    h1{
+      font-size:28px;
+      font-weight:700;
+      margin:0;
+      color:var(--text-primary);
+      background:linear-gradient(135deg, var(--accent-dark) 0%, var(--accent) 100%);
+      -webkit-background-clip:text;
+      -webkit-text-fill-color:transparent;
+    }
+    
+    .tagline{
+      font-size:14px;
+      color:var(--text-secondary);
+      margin-top:4px;
+      line-height:1.4;
+      max-width:600px;
+    }
+    
+    .hidden{display:none!important}
+    
+    .auth-container{
+      max-width:440px;
+      margin:60px auto;
+      background:var(--card);
+      padding:32px;
+      border-radius:24px;
+      border:1px solid var(--border);
+      box-shadow:var(--shadow-lg);
+    }
+    
+    .auth-form{display:flex;flex-direction:column;gap:20px}
+    .auth-form h2{
+      font-size:24px;
+      font-weight:700;
+      color:var(--text-primary);
+      text-align:center;
+      margin-bottom:8px;
+    }
+    
+    .auth-form input{
+      padding:14px 18px;
+      border:1px solid var(--border);
+      border-radius:12px;
+      font-size:15px;
+      background: var(--bg);
+      transition:var(--transition);
+      color:var(--text-primary);
+    }
+    
+    .auth-form input:focus{
+      outline:none;
+      border-color:var(--accent);
+      background:white;
+      box-shadow:0 0 0 3px rgba(221, 234, 109, 0.3);
+    }
+    
+    .form-footer{
+      text-align:center;
+      color:var(--text-secondary);
+      font-size:14px;
+    }
+    
+    .form-footer a{
+      color:var(--accent-dark);
+      text-decoration:none;
+      font-weight:600;
+      cursor:pointer;
+      transition:var(--transition);
+    }
+    
+    .form-footer a:hover{
+      text-decoration:underline;
+    }
+    
+    .controls, .session-setup, .recording, .taskbar {
+      display:flex;
+      gap:16px;
+      align-items:center;
+      flex-wrap:wrap;
+      margin-bottom:20px;
+      background:var(--card);
+      padding:16px 20px;
+      border-radius:16px;
+      border:1px solid var(--border);
+      box-shadow:var(--shadow-sm);
+    }
+    
+    button{
+      background:var(--card);
+      border:1px solid #dcdcdc;
+      padding:12px 20px;
+      border-radius:12px;
+      cursor:pointer;
+      font-weight:600;
+      transition:var(--transition);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      position:relative;
+      font-size:15px;
+      color:var(--text-primary);
+      box-shadow:var(--shadow-sm);
+    }
+    
+    button:hover:not(:disabled){
+      transform:translateY(-2px);
+      box-shadow:var(--shadow-md);
+      border-color: var(--accent-dark);
+    }
+    
+    button.primary{
+      background:var(--accent);
+      color:var(--text-primary);
+      border-color:transparent;
+    }
+    
+    button.primary:hover:not(:disabled){
+      background:var(--accent-dark);
+    }
+    
+    button.danger{
+      background:var(--danger);
+      color:white;
+      border-color:transparent;
+    }
+    
+    button.success{
+      background:var(--success);
+      color:white;
+      border-color:transparent;
+    }
+    
+    button:disabled{
+      opacity:.6;
+      cursor:not-allowed;
+      transform:none;
+    }
+    
+    .loader{
+      border:3px solid rgba(0, 0, 0, 0.1);
+      border-top:3px solid var(--text-primary);
+      border-radius:50%;
+      width:20px;
+      height:20px;
+      animation:spin 1s linear infinite;
+      display:none;
+    }
+    
+    button.primary .loader { border-top-color: var(--text-primary); }
+    button.danger .loader, button.success .loader { border: 3px solid rgba(255,255,255,0.2); border-top-color: white; }
+
+    .btn-text{transition:opacity .2s}
+    .loading .loader{display:block}
+    .loading .btn-text{opacity:0}
+    
+    .modal-overlay{
+      position:fixed;
+      top:0;
+      left:0;
+      right:0;
+      bottom:0;
+      background:rgba(0,0,0,0.6);
+      backdrop-filter:blur(4px);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      z-index:1000;
+    }
+    
+    .modal-box{
+      background:var(--card);
+      padding:32px;
+      border-radius:20px;
+      max-width:520px;
+      text-align:center;
+      box-shadow:var(--shadow-lg);
+      border:1px solid var(--border);
+    }
+    
+    .modal-box h3{
+      margin-bottom:16px;
+      font-size:20px;
+      font-weight:700;
+    }
+    
+    .modal-box p{
+      margin-bottom:24px;
+      color:var(--text-secondary);
+      text-align:left;
+      white-space:pre-wrap;
+      line-height:1.6;
+    }
+    
+    .modal-box .modal-actions{
+      display:flex;
+      justify-content:center;
+      gap:16px;
+    }
+    
+    /* Gender Selection Buttons */
+    .gender-options{
+      display:flex;
+      gap:12px;
+      align-items:center;
+    }
+    
+    .gender-options span{
+      font-weight:600;
+      color:var(--text-secondary);
+      margin-right:8px;
+    }
+    
+    .gender-btn{
+      position:relative;
+      display:inline-block;
+    }
+    
+    .gender-btn input[type="radio"]{
+      position:absolute;
+      opacity:0;
+    }
+    
+    .gender-btn label{
+      display:inline-block;
+      padding:10px 20px;
+      background:var(--bg);
+      border:1px solid var(--border);
+      border-radius:12px;
+      cursor:pointer;
+      font-weight:600;
+      transition:var(--transition);
+      color:var(--text-secondary);
+    }
+    
+    .gender-btn input:checked + label{
+      background:var(--accent);
+      border-color:transparent;
+      color:var(--text-primary);
+      box-shadow:var(--shadow-sm);
+    }
+    
+    .gender-btn label:hover{
+      border-color:var(--accent);
+    }
+    
+    #conversation{
+      background: var(--bg);
+      padding:24px;
+      border-radius:20px;
+      border:1px solid var(--border);
+      height:520px;
+      overflow-y:auto;
+      display:flex;
+      flex-direction:column;
+      gap:24px;
+      box-shadow:inset 0 2px 4px 0 rgba(0,0,0,0.05);
+    }
+    
+    /* Custom Scrollbar */
+    #conversation::-webkit-scrollbar,
+    .session-summary-list::-webkit-scrollbar {
+      width:8px;
+    }
+    
+    #conversation::-webkit-scrollbar-track,
+    .session-summary-list::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius:10px;
+    }
+    
+    #conversation::-webkit-scrollbar-thumb,
+    .session-summary-list::-webkit-scrollbar-thumb {
+      background:var(--accent);
+      border-radius:10px;
+    }
+    
+    #conversation::-webkit-scrollbar-thumb:hover,
+    .session-summary-list::-webkit-scrollbar-thumb:hover {
+      background:var(--accent-dark);
+    }
+    
+    .turn{
+      display:flex;
+      gap:16px;
+      max-width:85%;
+    }
+    
+    .turn.user{
+      align-self:flex-end;
+      flex-direction:row-reverse;
+    }
+    
+    .turn.ai{
+      align-self:flex-start;
+    }
+    
+    .avatar{
+      width:44px;
+      height:44px;
+      border-radius:50%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:700;
+      color:var(--text-primary);
+      flex-shrink:0;
+      box-shadow:var(--shadow-sm);
+      font-size:14px;
+    }
+    
+    .avatar-ai{
+      background:linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+    }
+    
+    .avatar-user{
+      background:linear-gradient(135deg, #a7c5d7 0%, #87a7b9 100%);
+      color: white;
+    }
+    
+    .msg-content{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      width:100%;
+    }
+    
+    .speaker{
+      font-weight:700;
+      font-size:14px;
+      color:var(--text-secondary);
+    }
+    
+    .msg-bubble{
+      padding:16px 20px;
+      border-radius:20px;
+      line-height:1.7;
+      position:relative;
+      width:fit-content;
+      box-shadow:var(--shadow-sm);
+    }
+    
+    .turn.ai .msg-bubble{
+      background:var(--card);
+      border-top-left-radius:4px;
+      border:1px solid var(--border);
+    }
+    
+    .turn.user .msg-bubble{
+      background:var(--accent-light);
+      border-top-right-radius:4px;
+      color:var(--text-primary);
+    }
+    
+    .meta{
+      display: none; /* HIDE META TEXT */
+    }
+    
+    .response-question, .response-task_instruction, .response-metacognitive, .response-CBT, .response-follow_up {
+      font-weight:700;
+      color:var(--text-primary);
+    }
+    
+    .response-empathy{
+      font-style:italic;
+      color:var(--text-secondary);
+    }
+    
+    .response-suggestion{
+      font-size:14px;
+      color:var(--muted);
+      margin-top:6px;
+    }
+    
+    .task-instructions{
+      margin-top:16px;
+      padding:16px;
+      background:var(--accent-light);
+      border-left:4px solid var(--accent);
+      border-radius:8px;
+      font-size:15px;
+    }
+    
+    .task-instructions ol{
+      padding-left:24px;
+      margin:0;
+      color:var(--text-secondary);
+    }
+    
+    .psychology-note{
+      padding:14px 16px;
+      border-left-width:4px;
+      border-radius:0 8px 8px 0;
+      font-size:14px;
+      line-height:1.5;
+      margin-top:8px;
+    }
+    
+    .psychology-note::before{
+      content:'💡 The Idea Behind This: ';
+      font-weight:700;
+      display:block;
+      margin-bottom:6px;
+    }
+    
+    .psychology-note--task {
+      border-color:var(--success);
+      background:rgba(104, 211, 145, 0.15);
+    }
+    
+    .psychology-note--follow_up, .psychology-note--metacognitive, .psychology-note--question {
+      border-color:var(--accent);
+      background:var(--accent-light);
+    }
+    
+    .psychology-note--CBT {
+      border-color:var(--warning);
+      background:rgba(246, 173, 85, 0.15);
+    }
+    
+    .psychology-note--safety_crisis {
+      border-color:var(--danger);
+      background:rgba(240, 128, 128, 0.15);
+    }
+    
+    .taskbar{
+      justify-content:center;
+      padding:20px;
+    }
+    
+    #timerBox{
+      display:inline-flex;
+      align-items:center;
+      gap:12px;
+      background:var(--accent-light);
+      padding:8px 16px;
+      border-radius:12px;
+      border:1px solid var(--accent);
+      font-size:15px;
+    }
+    
+    .timer-value{
+      font-weight:700;
+      color:var(--text-primary);
+      font-size:18px;
+    }
+    
+    .chip{
+      display:inline-block;
+      padding:6px 12px;
+      border-radius:999px;
+      background:var(--accent);
+      color:var(--text-primary);
+      font-weight:700;
+      font-size:13px;
+    }
+    
+    .recording-active{
+      animation:pulse 2s infinite;
+    }
+    
+    @keyframes pulse{
+      0%{box-shadow:0 0 0 0 rgba(221, 234, 109, 0.7)}
+      70%{box-shadow:0 0 0 12px rgba(221, 234, 109, 0)}
+      100%{box-shadow:0 0 0 0 rgba(221, 234, 109, 0)}
+    }
+    
+    .status-indicator{
+      display:inline-block;
+      width:10px;
+      height:10px;
+      border-radius:50%;
+      margin-right:8px;
+      box-shadow:var(--shadow-sm);
+    }
+    
+    .status-idle{background:#d4d4d8}
+    .status-listening{background:#ef4444}
+    .status-processing{background:var(--warning)}
+    .status-ready{background:var(--success)}
     
     /* --- WELLNESS STYLES --- */
-    .card{background:var(--card);border-radius:12px;border:1px solid var(--border);margin-bottom:20px; position: relative;}
-    .card-header{padding:16px;border-bottom:1px solid var(--border); display: flex; justify-content: space-between; align-items: center;} .card-header h3{margin:0;font-size:16px}
-    .card-content{padding:16px}
-    .interpret-btn{font-size:12px;color:var(--accent);text-decoration:none;font-weight:500;cursor:pointer}
-    .interpret-text{font-size:13px;color:var(--muted);background:#f9fafb;padding:12px;border-radius:8px;margin-top:12px}
-    .charts-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(350px,1fr));gap:20px}
-    .hourly-logger{display:grid;grid-template-columns:repeat(12,1fr);gap:8px}
-    .hour-btn{padding:8px;text-align:center;border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:12px}
-    .hour-btn:hover{background:#f0f9ff;border-color:var(--accent)}
-    .hour-btn.logged{background:var(--success);color:white;border-color:transparent}
-    .hour-btn:disabled{background:#e2e8f0;color:#94a3b8;cursor:not-allowed;border-color:var(--border)}
-    .hour-btn .loader { border-top-color: var(--accent); width: 14px; height: 14px; border-width: 2px; }
-    .insights-grid, .goals-grid {display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
-    .insight-card{border-left-width:4px;padding:16px;border-radius:8px}.insight-card h4{margin-bottom:8px;font-size:15px;display:flex;align-items:center;gap:8px}
-    .insight-notice{background:#fefce8;border-color:#ca8a04}.insight-notice h4{color:#854d0e}
-    .insight-positive{background:#f0fdf4;border-color:var(--success)}.insight-positive h4{color:#15803d}
-    .insight-negative{background:#fff1f2;border-color:#f43f5e}.insight-negative h4{color:#be123c}
-    .insight-growth{background:#fffbeb;border-color:var(--warning)}.insight-growth h4{color:#b45309}
-    .insight-action{background:#eff6ff;border-color:var(--accent)}.insight-action h4{color:#1d4ed8}
-    #calendarHeatmap{display:grid;grid-template-columns:repeat(7,1fr);gap:4px; max-width: 200px;}
-    .calendar-cell{aspect-ratio:1;border-radius:4px;background:#ebedf0;cursor:pointer;position:relative}
-    .calendar-cell:hover{border:2px solid var(--accent)}
-    .calendar-cell .tooltip{visibility:hidden;width:160px;background-color:#333;color:#fff;text-align:center;border-radius:6px;padding:5px 0;position:absolute;z-index:1;bottom:125%;left:50%;margin-left:-80px;opacity:0;transition:opacity .3s}
-    .calendar-cell:hover .tooltip{visibility:visible;opacity:1}
-    #wordCloudContainer{min-height:300px;width:100%}
-    .goal-card{background:#faf5ff;border:1px solid #e9d5ff;padding:16px;border-radius:8px; display:flex; flex-direction: column; align-items: flex-start; gap: 8px;}
-    .goal-card-content { display: flex; align-items: center; gap: 12px; }
-    .goal-card-icon{font-size:24px;} .goal-card p{margin:0;color:#581c87; font-weight: 500;}
-    .goal-card .rationale { font-size: 13px; color: var(--muted); margin-left: 36px; }
-    .daily-reflection-form { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-    .form-group { display: flex; flex-direction: column; gap: 8px; }
-    .form-group label { font-weight: 600; font-size: 14px; }
-    .form-group .options { display: flex; flex-wrap: wrap; gap: 8px; }
-    .options label { font-weight: normal; font-size: 14px; background: #f1f5f9; padding: 6px 12px; border-radius: 16px; cursor: pointer; border: 1px solid transparent; transition: var(--transition); }
-    .options input:checked + label { background: var(--accent); color: white; border-color: var(--accent); }
-    .options input { display: none; }
-    .food-group { display: flex; align-items: center; justify-content: space-between; }
-    .food-group select { padding: 4px; border-radius: 6px; border: 1px solid var(--border); }
-    .card-loader-overlay {
-        position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-        background: rgba(255, 255, 255, 0.7);
-        display: flex; align-items: center; justify-content: center;
-        z-index: 10; border-radius: 12px;
+    .card{
+      background:var(--card);
+      border-radius:20px;
+      border:1px solid var(--border);
+      margin-bottom:24px;
+      position:relative;
+      box-shadow:var(--shadow-sm);
+      transition:var(--transition);
     }
-    @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+    
+    .card:hover{
+      box-shadow:var(--shadow-md);
+      border-color: #dcdcdc;
+    }
+    
+    .card-header{
+      padding:20px;
+      border-bottom:1px solid var(--border);
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+    }
+    
+    .card-header h3{
+      margin:0;
+      font-size:18px;
+      font-weight:700;
+      color:var(--text-primary);
+    }
+    
+    .card-content{
+      padding:20px;
+    }
+    
+    .interpret-btn{
+      font-size:13px;
+      color:var(--accent-dark);
+      text-decoration:none;
+      font-weight:600;
+      cursor:pointer;
+      transition:var(--transition);
+    }
+    
+    .interpret-btn:hover{
+      text-decoration:underline;
+    }
+    
+    .interpret-text{
+      font-size:14px;
+      color:var(--text-secondary);
+      background:var(--accent-light);
+      padding:16px;
+      border-radius:12px;
+      margin-top:16px;
+      line-height:1.6;
+    }
+    
+    .charts-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(380px,1fr));
+      gap:24px;
+    }
+    
+    .hourly-logger{
+      display:grid;
+      grid-template-columns:repeat(auto-fit, minmax(60px, 1fr));
+      gap:10px;
+    }
+    
+    .hour-btn{
+      padding:10px;
+      text-align:center;
+      border:1px solid var(--border);
+      border-radius:10px;
+      cursor:pointer;
+      font-size:13px;
+      background:white;
+      transition:var(--transition);
+      font-weight:600;
+      color:var(--text-secondary);
+    }
+    
+    .hour-btn:hover:not(:disabled){
+      background:var(--accent-light);
+      border-color:var(--accent);
+      transform:translateY(-2px);
+    }
+    
+    .hour-btn.logged{
+      background:var(--accent);
+      color:var(--text-primary);
+      border-color:transparent;
+    }
+    
+    .hour-btn:disabled{
+      background:#f5f5f4;
+      color:#a8a29e;
+      cursor:not-allowed;
+      border-color:var(--border);
+    }
+    
+    .hour-btn .loader {
+      border-top-color:var(--accent);
+      width:16px;
+      height:16px;
+      border-width:2px;
+    }
+    
+    .insights-grid, .goals-grid {
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+      gap:20px;
+    }
+    
+    .insight-card{
+      border-left-width:4px;
+      padding:20px;
+      border-radius:12px;
+      transition:var(--transition);
+    }
+    
+    .insight-card:hover{
+      transform:translateX(4px);
+    }
+    
+    .insight-card h4{
+      margin-bottom:10px;
+      font-size:16px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    
+    .insight-notice{
+      background:rgba(246, 173, 85, 0.15);
+      border-color:var(--warning);
+    }
+    
+    .insight-notice h4{
+      color: #b96a15;
+    }
+    
+    .insight-positive{
+      background:rgba(104, 211, 145, 0.15);
+      border-color:var(--success);
+    }
+    
+    .insight-positive h4{
+      color:#2f6e53;
+    }
+    
+    .insight-negative{
+      background:rgba(240, 128, 128, 0.15);
+      border-color: var(--danger);
+    }
+    
+    .insight-negative h4{
+      color:#a54d4d;
+    }
+    
+    .insight-growth {
+      background: rgba(129, 230, 217, 0.2);
+      border-color: var(--growth);
+    }
+    
+    .insight-growth h4 {
+      color: #2c7a7b;
+    }
+
+    .insight-action{
+      background:var(--accent-light);
+      border-color:var(--accent);
+    }
+    
+    .insight-action h4{
+      color:var(--text-primary);
+    }
+    
+    #calendarHeatmap{
+      display:grid;
+      grid-template-columns:repeat(7,1fr);
+      gap:4px;
+      max-width:224px;
+    }
+    
+    .calendar-cell{
+      aspect-ratio:1;
+      border-radius:6px;
+      background:#f5f5f4;
+      cursor:pointer;
+      position:relative;
+      transition:var(--transition);
+    }
+    
+    .calendar-cell:hover{
+      border:2px solid var(--accent);
+      transform:scale(1.1);
+    }
+    
+    .calendar-cell .tooltip{
+      visibility:hidden;
+      width:180px;
+      background-color:#3d3d3d;
+      color:white;
+      text-align:center;
+      border-radius:8px;
+      padding:8px;
+      position:absolute;
+      z-index:1;
+      bottom:125%;
+      left:50%;
+      margin-left:-90px;
+      opacity:0;
+      transition:opacity .3s;
+      font-size:12px;
+    }
+    
+    .calendar-cell:hover .tooltip{
+      visibility:visible;
+      opacity:1;
+    }
+    
+    #wordCloudContainer{
+      min-height:320px;
+      width:100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    
+    .goal-card{
+      background:var(--accent-light);
+      border:1px solid var(--accent);
+      padding:20px;
+      border-radius:16px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      transition:var(--transition);
+    }
+    
+    .goal-card:hover{
+      transform:translateY(-4px);
+      box-shadow:var(--shadow-md);
+    }
+    
+    .goal-card-content {
+      display:flex;
+      align-items:center;
+      gap:16px;
+    }
+    
+    .goal-card-icon{
+      font-size:28px;
+    }
+    
+    .goal-card p{
+      margin:0;
+      color:var(--text-primary);
+      font-weight:600;
+      font-size:15px;
+    }
+    
+    .goal-card .rationale {
+      font-size:14px;
+      color:var(--text-secondary);
+      margin-left:44px;
+      line-height:1.5;
+    }
+    
+    .daily-reflection-form {
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:24px;
+    }
+    
+    .form-group {
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    
+    .form-group label {
+      font-weight:700;
+      font-size:15px;
+      color:var(--text-primary);
+    }
+    
+    .form-group .options {
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+    }
+    
+    .options label {
+      font-weight:500;
+      font-size:14px;
+      background:white;
+      padding:8px 16px;
+      border-radius:20px;
+      cursor:pointer;
+      border:1px solid var(--border);
+      transition:var(--transition);
+      color:var(--text-secondary);
+    }
+    
+    .options label:hover {
+      border-color:var(--accent);
+      transform:translateY(-2px);
+    }
+    
+    .options input:checked + label {
+      background:var(--accent);
+      color:var(--text-primary);
+      border-color:transparent;
+      box-shadow:var(--shadow-sm);
+    }
+    
+    .options input {
+      display:none;
+    }
+    
+    .food-group {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:8px 0;
+    }
+    
+    .food-group select {
+      padding:8px 12px;
+      border-radius:8px;
+      border:1px solid var(--border);
+      background:white;
+      cursor:pointer;
+      transition:var(--transition);
+    }
+    
+    .food-group select:focus {
+      outline:none;
+      border-color:var(--accent);
+    }
+    
+    .session-summary-list {
+      max-height:300px;
+      overflow-y:auto;
+      padding-right:8px;
+      list-style:none;
+    }
+    
+    .session-summary-item {
+      margin-bottom:16px;
+      padding-bottom:16px;
+      border-bottom:1px solid var(--border);
+    }
+    
+    .session-summary-item:last-child {
+      border-bottom:none;
+    }
+    
+    .session-summary-item h5 {
+      font-size:16px;
+      font-weight:700;
+      color:var(--text-primary);
+      margin-bottom:4px;
+    }
+    
+    .session-summary-item p {
+      line-height:1.6;
+    }
+    
+    .card-loader-overlay {
+      position:absolute;
+      top:0;
+      left:0;
+      right:0;
+      bottom:0;
+      background:rgba(255,255,255,0.85);
+      backdrop-filter:blur(4px);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      z-index:10;
+      border-radius:20px;
+    }
+    
+    footer {
+      text-align:center;
+      margin-top:40px;
+      padding:20px;
+      color:var(--text-secondary);
+      font-size:14px;
+    }
+    
+    .small {
+      font-size:13px;
+      color:var(--text-secondary);
+    }
+    
+    @keyframes spin{
+      0%{transform:rotate(0deg)}
+      100%{transform:rotate(360deg)}
+    }
   </style>
 </head>
 <body>
 <div class="container">
-    <header><h1>Empathetic AI</h1></header>
+    <header>
+        <div>
+            <h1>HealAura</h1>
+            <p class="tagline">An empathetic, metacognitive, and CBT-inspired AI dedicated to nurturing your well-being and supporting you psychologically at every step <br> <b>By GenAURA++</b></p>
+        </div>
+    </header>
     <div id="authContainer"><!-- Auth Forms --></div>
     <div id="appContainer" class="hidden">
         <div class="controls">
             <button id="showSessionBtn" class="primary">Therapy Session</button>
             <button id="showWellnessBtn">Wellness Tracker</button>
             <button id="logoutBtn" style="margin-left:auto;">Logout</button>
-            <button id="endSession" disabled>End Session</button>
-            <div id="sessionId" class="small" style="color:var(--muted)">(no active session)</div>
+            <button id="endSession" disabled class="danger">End Session</button>
+            <div id="sessionId" class="small">(no active session)</div>
         </div>
         <div id="therapySessionContainer"></div>
         <div id="wellnessContainer" class="hidden"></div>
@@ -135,7 +981,7 @@ function showAlert(title, message, type = 'info') {
     if (existingModal) existingModal.remove();
     const modal = document.createElement('div');
     modal.className = 'modal-overlay';
-    const typeColor = type === 'error' ? 'var(--danger)' : type === 'success' ? 'var(--success)' : 'var(--accent)';
+    const typeColor = type === 'error' ? 'var(--danger)' : type === 'success' ? 'var(--success)' : 'var(--accent-dark)';
     modal.innerHTML = `
         <div class="modal-box">
             <h3 style="color:${typeColor};">${title}</h3>
@@ -252,16 +1098,22 @@ function updateStatus(status, processing=false){
 
 document.addEventListener('DOMContentLoaded', () => {
     // Populate Auth Container
-    dom.authContainer.innerHTML = `<div class="auth-container"><form id="loginForm" class="auth-form"><h2>Welcome Back</h2><input type="text" id="loginUsername" name="username" placeholder="Username" required><input type="password" id="loginPassword" name="password" placeholder="Password" required><button type="submit" class="primary"><span class="btn-text">Login</span><div class="loader"></div></button><div class="form-footer">Don't have an account? <a id="showSignupLink">Create one</a></div></form><form id="signupForm" class="auth-form hidden"><h2>Create Anonymous Account</h2><input type="text" id="signupUsername" name="username" placeholder="Username" required><input type="password" id="signupPassword" name="password" placeholder="Password (min 6 chars)" required><input type="password" id="signupConfirmPassword" name="confirm_password" placeholder="Confirm Password" required><button type="submit" class="primary"><span class="btn-text">Create Account</span><div class="loader"></div></button><div class="form-footer">Already have an account? <a id="showLoginLink">Login</a></div></form></div>`;
+    dom.authContainer.innerHTML = `<div class="auth-container"><form id="loginForm" class="auth-form"><h2>Welcome Back to HealAura</h2><input type="text" id="loginUsername" name="username" placeholder="Username" required><input type="password" id="loginPassword" name="password" placeholder="Password" required><button type="submit" class="primary"><span class="btn-text">Login</span><div class="loader"></div></button><div class="form-footer">Don't have an account? <a id="showSignupLink">Create one</a></div></form><form id="signupForm" class="auth-form hidden"><h2>Create Your HealAura Account</h2><div style="border:1px solid #f0ad4e; padding:12px; border-radius:6px; background:#fff7e6;">
+  <strong>Important:</strong>
+  <p style="margin:6px 0 0;">
+    This is an anonymous account. We do not collect email or other credentials. <strong>Save your username and password now</strong>; they cannot be recovered later.
+  </p>
+</div>
+<input type="text" id="signupUsername" name="username" placeholder="Username" required><input type="password" id="signupPassword" name="password" placeholder="Password (min 6 chars)" required><input type="password" id="signupConfirmPassword" name="confirm_password" placeholder="Confirm Password" required><button type="submit" class="primary"><span class="btn-text">Create Account</span><div class="loader"></div></button><div class="form-footer">Already have an account? <a id="showLoginLink">Login</a></div></form></div>`;
     // Populate Therapy Container
-    dom.therapyContainer.innerHTML = `<div class="session-setup" id="sessionSetup"><div><label for="languageSelect" class="small">Language:</label><select id="languageSelect"><option value="en-US" selected>English</option><option value="hi-IN">Hindi</option></select></div><div class="gender-options"><span class="small">Your Gender:</span><label><input type="radio" name="userGender" value="female" checked> F</label><label><input type="radio" name="userGender" value="male"> M</label><label><input type="radio" name="userGender" value="other"> O</label></div><button id="startSession" class="primary" style="margin-left: auto;"><span class="btn-text">Start New Session</span><div class="loader"></div></button></div><div class="recording hidden" id="recordingControls"><button id="startRec">Start Recording</button><button id="stopRec" disabled class="danger">Stop Recording</button><button id="submitRec" disabled class="primary"><span class="btn-text">Submit</span><div class="loader"></div></button><div style="margin-left: auto; display: flex; align-items: center; gap: 6px;"><span class="status-indicator status-idle" id="statusIndicator"></span><span id="recStatus" class="small">Ready</span></div></div><div id="conversation"></div><div class="taskbar hidden" id="taskControls"><button id="markDone" class="success" disabled><span class="btn-text">I'm Done</span><div class="loader"></div></button><div id="timerBox" class="hidden"><span class="chip">Timer</span><span class="timer-value" id="timerValue">60s</span></div></div>`;
+    dom.therapyContainer.innerHTML = `<div class="session-setup" id="sessionSetup"><div><label for="languageSelect" class="small">Language:</label><select id="languageSelect"><option value="en-US" selected>English</option><option value="hi-IN">Hindi</option></select></div><div class="gender-options"><span>Your Gender:</span><div class="gender-btn"><input type="radio" name="userGender" value="female" id="genderF" checked><label for="genderF">Female</label></div><div class="gender-btn"><input type="radio" name="userGender" value="male" id="genderM"><label for="genderM">Male</label></div><div class="gender-btn"><input type="radio" name="userGender" value="other" id="genderO"><label for="genderO">Other</label></div></div><button id="startSession" class="primary" style="margin-left: auto;"><span class="btn-text">Start New Session</span><div class="loader"></div></button></div><div class="recording hidden" id="recordingControls"><button id="startRec">Start Recording</button><button id="stopRec" disabled class="danger">Stop Recording</button><button id="submitRec" disabled class="primary"><span class="btn-text">Submit</span><div class="loader"></div></button><div style="margin-left: auto; display: flex; align-items: center; gap: 6px;"><span class="status-indicator status-idle" id="statusIndicator"></span><span id="recStatus" class="small">Ready</span></div></div><div id="conversation"></div><div class="taskbar hidden" id="taskControls"><button id="markDone" class="success" disabled><span class="btn-text">I'm Done</span><div class="loader"></div></button><div id="timerBox" class="hidden"><span class="chip">Timer</span><span class="timer-value" id="timerValue">60s</span></div></div>`;
     // Populate Wellness Container
     dom.wellnessContainer.innerHTML = `
-        <h2 style="font-size:22px; margin-bottom:20px;">Your Wellness Dashboard</h2>
+        <h2 style="font-size:26px; margin-bottom:24px; color:var(--text-primary);">Your Wellness Dashboard</h2>
         <div class="card"><div class="card-header"><h3>Daily Logging</h3></div><div class="card-content">
-            <h4>Part 1: Quick Thoughts</h4><p class="small" style="margin-bottom:12px;">How are you feeling? Click an hour to log your thoughts and emotions. Logged hours are disabled.</p><div class="hourly-logger" id="hourlyLogger"></div>
-            <hr style="margin: 24px 0; border: none; border-top: 1px solid var(--border);">
-            <h4>Part 2: Daily Reflection</h4><p class="small" style="margin-bottom:12px;">Fill this out once per day to find deeper patterns.</p><form id="dailyReflectionForm" class="daily-reflection-form"></form>
+            <h4>Part 1: Quick Thoughts</h4><p class="small" style="margin-bottom:16px;">How are you feeling? Click an hour to log your thoughts and emotions. Logged hours are disabled.</p><div class="hourly-logger" id="hourlyLogger"></div>
+            <hr style="margin: 28px 0; border: none; border-top: 1px solid var(--border);">
+            <h4>Part 2: Daily Reflection</h4><p class="small" style="margin-bottom:16px;">Fill this out once per day to find deeper patterns.</p><form id="dailyReflectionForm" class="daily-reflection-form"></form>
         </div></div>
         <div class="card"><div class="card-header"><h3>This Week's Goals</h3></div><div class="card-content goals-grid" id="goalsContainer"></div></div>
         <div class="card"><div class="card-header"><h3>AI-Powered Insights</h3></div><div class="card-content"><div class="insights-grid" id="insightsContainer"></div></div></div>
@@ -309,12 +1161,51 @@ document.addEventListener('DOMContentLoaded', () => {
 async function onSignup(e) { e.preventDefault(); const btn = dom.signupForm.querySelector('button'); showLoader(btn, true); try { const form = new FormData(dom.signupForm); const res = await fetch('/signup', { method: 'POST', body: form }); const data = await res.json(); if (!res.ok) throw new Error(data.detail); showAlert('Success', 'Account created. Please log in.', 'success'); dom.signupForm.reset(); dom.showLoginLink.onclick(); } catch (err) { showAlert('Signup Error', err.message, 'error'); } finally { showLoader(btn, false); } }
 async function onLogin(e) { e.preventDefault(); const btn = dom.loginForm.querySelector('button'); showLoader(btn, true); try { const form = new FormData(dom.loginForm); const res = await fetch('/login', { method: 'POST', body: form }); const data = await res.json(); if (!res.ok) throw new Error(data.detail); currentUserId = data.user_id; dom.authContainer.classList.add('hidden'); dom.appContainer.classList.remove('hidden'); dom.showSessionBtn.click(); } catch (err) { showAlert('Login Error', err.message, 'error'); } finally { showLoader(btn, false); } }
 function onLogout() { if(sessionId) onEndSession(); currentUserId=null; sessionId=null; wellnessData=null; dom.appContainer.classList.add('hidden'); dom.authContainer.classList.remove('hidden'); dom.loginForm.reset(); dom.signupForm.reset(); dom.conversation.innerHTML=''; dom.endSessionBtn.disabled=true; clearActiveTask(); }
-async function onStartSession() { showLoader(dom.startSessionBtn, true); updateStatus("Starting...", true); try { const form=new FormData(); form.append('user_id', currentUserId); form.append('language', dom.languageSelect.value); form.append('user_gender', document.querySelector('input[name="userGender"]:checked').value); const res = await fetch('/start_session', {method:'POST', body: form}); if(!res.ok) throw new Error(await res.text()); const j = await res.json(); sessionId = j.session_id; dom.sessionSetup.classList.add('hidden'); dom.recordingControls.classList.remove('hidden'); dom.sessionIdEl.textContent = `Session: ...${sessionId.slice(-6)}`; dom.conversation.innerHTML = ""; appendTurn('ai', { reply_structured: j.initial_reply, tts_b64: j.tts_b64 }, "Session started", "start"); dom.endSessionBtn.disabled = false; wellnessData = null; clearActiveTask(); updateStatus("Ready", false); } catch(e) { showAlert('Error', e.message, 'error'); updateStatus("Error", false); } finally { showLoader(dom.startSessionBtn, false); } }
-async function onEndSession() { if(!sessionId) return; showLoader(dom.endSessionBtn, true); updateStatus("Ending...", true); try { const form=new FormData(); form.append('session_id', sessionId); const res = await fetch('/end_session',{method:'POST',body:form}); const j = await res.json(); appendTurn('ai',{reply_structured: j.closing_reply,tts_b64:j.tts_b64},"Session ended", "end"); sessionId=null; dom.sessionIdEl.textContent="(no active session)"; dom.sessionSetup.classList.remove('hidden'); dom.recordingControls.classList.add('hidden'); dom.endSessionBtn.disabled=true; clearActiveTask();} catch(e) { showAlert('Error', `Could not end session: ${e.message}`, 'error'); } finally { showLoader(dom.endSessionBtn, false); updateStatus("Ended", false); } }
+async function onStartSession() { showLoader(dom.startSessionBtn, true); updateStatus("Starting...", true); try { const form=new FormData(); form.append('user_id', currentUserId); form.append('language', dom.languageSelect.value); form.append('user_gender', document.querySelector('input[name="userGender"]:checked').value); const res = await fetch('/start_session', {method:'POST', body: form}); if(!res.ok) throw new Error(await res.text()); const j = await res.json(); sessionId = j.session_id; dom.sessionSetup.classList.add('hidden'); dom.recordingControls.classList.remove('hidden'); dom.sessionIdEl.textContent = `Session: ...${sessionId.slice(-6)}`; dom.conversation.innerHTML = ""; appendTurn('ai', { reply_structured: j.initial_reply, tts_b64: j.tts_b64 }, null, "start"); dom.endSessionBtn.disabled = false; wellnessData = null; clearActiveTask(); updateStatus("Ready", false); } catch(e) { showAlert('Error', e.message, 'error'); updateStatus("Error", false); } finally { showLoader(dom.startSessionBtn, false); } }
+async function onEndSession() { if(!sessionId) return; showLoader(dom.endSessionBtn, true); updateStatus("Ending...", true); try { const form=new FormData(); form.append('session_id', sessionId); const res = await fetch('/end_session',{method:'POST',body:form}); const j = await res.json(); appendTurn('ai',{reply_structured: j.closing_reply,tts_b64:j.tts_b64}, null, "end"); sessionId=null; dom.sessionIdEl.textContent="(no active session)"; dom.sessionSetup.classList.remove('hidden'); dom.recordingControls.classList.add('hidden'); dom.endSessionBtn.disabled=true; clearActiveTask();} catch(e) { showAlert('Error', `Could not end session: ${e.message}`, 'error'); } finally { showLoader(dom.endSessionBtn, false); updateStatus("Ended", false); } }
 async function onStartRecording() { updateStatus("Requesting mic...", true); audioChunks = []; try { const stream = await navigator.mediaDevices.getUserMedia({audio:true}); mediaRecorder = new MediaRecorder(stream); mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); }; mediaRecorder.onstop = () => { updateStatus("Stopped", false); dom.submitRecBtn.disabled = false; }; mediaRecorder.start(); dom.startRecBtn.disabled = true; dom.stopRecBtn.disabled = false; dom.startRecBtn.classList.add('recording-active'); updateStatus("Recording...", false); } catch (e) { showAlert('Mic Error', e.message, 'error'); updateStatus("Mic Error", false); } }
 function onStopRecording() { if(mediaRecorder?.state === "recording"){ mediaRecorder.stop(); mediaRecorder.stream.getTracks().forEach(t => t.stop()); dom.startRecBtn.disabled = false; dom.stopRecBtn.disabled = true; dom.startRecBtn.classList.remove('recording-active'); } }
-async function onSubmitRecording() { if(!audioChunks.length || !sessionId) return; showLoader(dom.submitRecBtn, true); updateStatus("Processing...", true); try { const blob = new Blob(audioChunks, {type:'audio/webm'}); const form = new FormData(); form.append('file', blob, 'rec.webm'); form.append('session_id', sessionId); const res = await fetch('/process_audio', {method:'POST', body:form}); if(!res.ok) throw new Error((await res.json()).detail); const j = await res.json(); appendTurn('user', {text: j.audio_output.transcript || "(silence)"}, `Emotion: ${j.audio_output.final_emotion}`); appendTurn('ai', {reply_structured: j.reply, tts_b64: j.tts_b64}, `Decision: ${j.decision.decision}`, j.decision.decision); audioChunks = []; dom.submitRecBtn.disabled = true; } catch(e) { showAlert('Error', e.message, 'error'); } finally { showLoader(dom.submitRecBtn, false); updateStatus("Ready", false); } }
-async function onTaskDone() { if(!sessionId || !activeTask) return; showLoader(dom.markDoneBtn, true); try { const form = new FormData(); form.append('session_id', sessionId); form.append('task_id', activeTask.task_id); const res = await fetch('/task_done', {method:'POST', body:form}); if(!res.ok) throw new Error(await res.text()); const j = await res.json(); appendTurn('ai', {reply_structured: j.reply, tts_b64: j.tts_b64}, 'Follow-up', j.decision.decision); } catch(e) { showAlert('Task Error', e.message, 'error'); } finally { showLoader(dom.markDoneBtn, false); clearActiveTask(); } }
+async function onSubmitRecording() {
+    if (!audioChunks.length || !sessionId) return;
+    showLoader(dom.submitRecBtn, true);
+    updateStatus("Processing...", true);
+    try {
+        const blob = new Blob(audioChunks, { type: 'audio/webm' });
+        const form = new FormData();
+        form.append('file', blob, 'rec.webm');
+        form.append('session_id', sessionId);
+        const res = await fetch('/process_audio', { method: 'POST', body: form });
+        if (!res.ok) throw new Error((await res.json()).detail);
+        const j = await res.json();
+        appendTurn('user', { text: j.audio_output.transcript || "(silence)" });
+        appendTurn('ai', { reply_structured: j.reply, tts_b64: j.tts_b64 }, null, j.decision.decision);
+        audioChunks = [];
+        dom.submitRecBtn.disabled = true;
+    } catch (e) {
+        showAlert('Error', e.message, 'error');
+    } finally {
+        showLoader(dom.submitRecBtn, false);
+        updateStatus("Ready", false);
+    }
+}
+async function onTaskDone() {
+    if (!sessionId || !activeTask) return;
+    showLoader(dom.markDoneBtn, true);
+    try {
+        const form = new FormData();
+        form.append('session_id', sessionId);
+        form.append('task_id', activeTask.task_id);
+        const res = await fetch('/task_done', { method: 'POST', body: form });
+        if (!res.ok) throw new Error(await res.text());
+        const j = await res.json();
+        appendTurn('ai', { reply_structured: j.reply, tts_b64: j.tts_b64 }, null, j.decision.decision);
+    } catch (e) {
+        showAlert('Task Error', e.message, 'error');
+    } finally {
+        showLoader(dom.markDoneBtn, false);
+        clearActiveTask();
+    }
+}
 async function onSaveStructuredData(e) { e.preventDefault(); const btn = dom.dailyReflectionForm.querySelector('button'); showLoader(btn, true); try { const form = new FormData(dom.dailyReflectionForm); form.append('user_id', currentUserId); form.append('date_str', new Date().toISOString().split('T')[0]); const res = await fetch('/wellness/log_structured_entry', { method: 'POST', body: form }); if (!res.ok) throw new Error(await res.text()); showAlert('Success', 'Reflection saved.', 'success'); wellnessData = null; fetchAndRenderWellnessData(); } catch(e) { showAlert('Error', e.message, 'error'); } finally { showLoader(btn, false); } }
 
 // --- WELLNESS DASHBOARD FUNCTIONS ---
@@ -369,14 +1260,18 @@ function renderDailyLogging(logs) {
 
 function logForHour(hour, existingLog, buttonEl) { const text = prompt(`How are you feeling at ${hour}:00?`); if (text?.trim()) submitHourlyLog(hour, text.trim(), buttonEl); }
 
-// MODIFIED: This function no longer reloads the entire page. It updates the button and local data directly.
 async function submitHourlyLog(hour, text, buttonEl) { 
     showLoader(buttonEl, true);
     const form = new FormData(); 
     form.append('user_id', currentUserId); 
     form.append('hour', hour); 
     form.append('text', text); 
-    form.append('date_str', new Date().toISOString().split('T')[0]); 
+    
+    // FIX: Use local date to prevent timezone errors in the evening.
+    const now = new Date();
+    const localDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    form.append('date_str', localDateStr);
+    
     try { 
         const res = await fetch('/wellness/log_daily_entry', { method: 'POST', body: form }); 
         if (!res.ok) {
@@ -386,18 +1281,13 @@ async function submitHourlyLog(hour, text, buttonEl) {
         const result = await res.json();
         const newLog = result.data;
 
-        // Update UI for this specific button
         buttonEl.classList.add('logged');
         buttonEl.disabled = true;
         buttonEl.title = `Logged: ${newLog.analysis.primary_emotion}`;
         
-        // Update local cache without full reload
         if (wellnessData && wellnessData.raw_logs) {
             wellnessData.raw_logs.push(newLog);
         }
-        
-        // No full fetchAndRenderWellnessData() call needed here.
-        // showAlert('Success', 'Entry logged.', 'success'); // Optional: can be annoying if logging many.
     } catch(e) { 
         showAlert('Log Error', e.message, 'error'); 
     } finally {
@@ -405,7 +1295,7 @@ async function submitHourlyLog(hour, text, buttonEl) {
     }
 }
 
-function renderSummaries(summaries) { dom.sessionSummaryList.innerHTML = (!summaries || summaries.length === 0) ? '<li>(No recent session summaries)</li>' : summaries.map(s => `<li class="session-summary-item" style="margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border);"><h5>${s.title || 'Session Summary'}</h5><p class="small" style="color:var(--muted);">${new Date(s.session_start_utc).toLocaleString()}</p><p style="font-size: 14px;">${s.overall_summary || ''}</p></li>`).join(''); }
+function renderSummaries(summaries) { dom.sessionSummaryList.innerHTML = (!summaries || summaries.length === 0) ? '<li>(No recent session summaries)</li>' : summaries.map(s => `<li class="session-summary-item"><h5>${s.title || 'Session Summary'}</h5><p class="small">${new Date(s.session_start_utc).toLocaleString()}</p><p style="font-size: 14px;">${s.overall_summary || ''}</p></li>`).join(''); }
 
 function renderStructuredForm(log) {
     const data = log ? log.data : {};
@@ -431,17 +1321,18 @@ function renderStructuredForm(log) {
         <div class="food-group"><span>Lunch:</span> <select name="food_lunch" ${log ? 'disabled' : ''}><option ${food.lunch === 'Healthy' ? 'selected' : ''}>Healthy</option><option ${food.lunch === 'Semi' ? 'selected' : ''}>Semi</option><option ${food.lunch === 'Junk' ? 'selected' : ''}>Junk</option></select></div>
         <div class="food-group"><span>Dinner:</span> <select name="food_dinner" ${log ? 'disabled' : ''}><option ${food.dinner === 'Healthy' ? 'selected' : ''}>Healthy</option><option ${food.dinner === 'Semi' ? 'selected' : ''}>Semi</option><option ${food.dinner === 'Junk' ? 'selected' : ''}>Junk</option></select></div>
     </div>`;
-    if (!log) { formHTML += `<button type="submit" class="primary" style="grid-column: 1 / -1; margin-top: 12px;"><span class="btn-text">Save Daily Reflection</span><div class="loader"></div></button>`; } 
-    else { formHTML += `<p style="grid-column: 1 / -1; text-align: center; color: var(--muted); margin-top: 12px;">Today's reflection has been saved.</p>`; }
+    if (!log) { formHTML += `<button type="submit" class="primary" style="grid-column: 1 / -1; margin-top: 16px;"><span class="btn-text">Save Daily Reflection</span><div class="loader"></div></button>`; } 
+    else { formHTML += `<p style="grid-column: 1 / -1; text-align: center; color: var(--muted); margin-top: 16px;">Today's reflection has been saved.</p>`; }
     dom.dailyReflectionForm.innerHTML = formHTML;
 }
 
-function renderInsights(insights) { dom.insightsContainer.innerHTML = `
-    <div class="insight-card insight-notice"><h4>✨ We've Noticed...</h4><p>${insights.causal_inference || 'N/A'}</p></div>
-    <div class="insight-card insight-positive"><h4>✅ Positive Pattern</h4><p>${insights.positive_pattern || 'N/A'}</p></div>
-    <div class="insight-card insight-negative"><h4>⚠️ Challenge Pattern</h4><p>${insights.challenge_pattern || 'N/A'}</p></div>
-    <div class="insight-card insight-growth"><h4>🌱 Area for Growth</h4><p>${insights.area_for_growth || 'N/A'}</p></div>
-    <div class="insight-card insight-action" style="grid-column: 1 / -1;"><h4>💡 Actionable Suggestion</h4><p>${insights.actionable_suggestion || 'N/A'}</p></div>`;
+function renderInsights(insights) { 
+    dom.insightsContainer.innerHTML = `
+        <div class="insight-card insight-notice"><h4>✨ We've Noticed...</h4><p>${insights.causal_inference || 'N/A'}</p></div>
+        <div class="insight-card insight-positive"><h4>✅ Positive Pattern</h4><p>${insights.positive_pattern || 'N/A'}</p></div>
+        <div class="insight-card insight-negative"><h4>⚠️ Challenge Pattern</h4><p>${insights.challenge_pattern || 'N/A'}</p></div>
+        <div class="insight-card insight-growth"><h4>🌱 Area for Growth</h4><p>${insights.area_for_growth || 'N/A'}</p></div>
+        <div class="insight-card insight-action" style="grid-column: 1 / -1;"><h4>💡 Actionable Suggestion</h4><p>${insights.actionable_suggestion || 'N/A'}</p></div>`;
 }
 
 function renderGoals(goals) { 
@@ -455,7 +1346,7 @@ function renderGoals(goals) {
         </div>`).join('') : '<p>Your personalized goals will appear here soon.</p>'; 
 }
 
-const getSentimentColor = s => { if (s === null || s === undefined) return '#ebedf0'; const r = s < 0 ? 239 : 190, g = s > 0 ? 246 : 222, b = 239, a = Math.abs(s) * .8 + .2; return `rgba(${r}, ${g}, ${b}, ${a})`;};
+const getSentimentColor = s => { if (s === null || s === undefined) return '#f5f5f4'; const g = s > 0 ? 234 : 128, b = s > 0 ? 109 : 128, r = s < 0 ? 240 : 221; const a = Math.abs(s) * .8 + .2; return `rgba(${r}, ${g}, ${b}, ${a})`; };
 async function renderCalendarHeatmap(dailySentiments) {
     dom.calendarHeatmap.innerHTML = '';
     const today = new Date();
@@ -481,7 +1372,7 @@ async function renderCalendarHeatmap(dailySentiments) {
     }
 }
 function renderAllCharts(aggregated) {
-    const chartColors = ['#2563eb', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#3b82f6', '#f97316', '#22c55e', '#ec4899'];
+    const chartColors = ['#ddea6d', '#68d391', '#f6ad55', '#7180d4', '#b794f4', '#4fd1c5', '#f687b3', '#a3aed2'];
     const correlationMetrics = aggregated.correlation_metrics || {};
 
     renderCorrelationChart('sleepChart', correlationMetrics.sleep_quality, 'Avg. Sentiment by Sleep Quality', chartColors);
@@ -497,12 +1388,12 @@ function renderAllCharts(aggregated) {
     const sentimentCtx = document.getElementById('sentimentOverTimeChart').getContext('2d');
     const dailyData = aggregated.daily_sentiment || {};
     const sortedDates = Object.keys(dailyData).sort();
-    charts.sentiment = new Chart(sentimentCtx, { type: 'line', data: { labels: sortedDates, datasets: [{ label: 'Average Sentiment', data: sortedDates.map(d => dailyData[d]), borderColor: 'rgba(37, 99, 235, 0.8)', tension: 0.1, fill: false }] }, options: { scales: { x: { type: 'time', time: { unit: 'day' } }, y: { min: -1, max: 1 } } } });
+    charts.sentiment = new Chart(sentimentCtx, { type: 'line', data: { labels: sortedDates, datasets: [{ label: 'Average Sentiment', data: sortedDates.map(d => dailyData[d]), borderColor: '#c8d75a', tension: 0.1, fill: false, borderWidth: 3 }] }, options: { scales: { x: { type: 'time', time: { unit: 'day' } }, y: { min: -1, max: 1 } } } });
     
     dom.wordCloudContainer.innerHTML = '';
     const words = (aggregated.word_cloud_data || []).map(d => ({text: d.text, size: 10 + Math.pow(d.value, 0.7) * 10}));
     if (words.length > 0) {
-        const color = d3.scaleOrdinal(d3.schemeTableau10);
+        const color = d3.scaleOrdinal(chartColors);
         const layout = d3.layout.cloud().size([dom.wordCloudContainer.clientWidth > 0 ? dom.wordCloudContainer.clientWidth : 300, 300]).words(words).padding(5).rotate(() => 0).fontSize(d => d.size).on("end", draw);
         layout.start();
         function draw(words) { d3.select("#wordCloudContainer").append("svg").attr("width", layout.size()[0]).attr("height", layout.size()[1]).append("g").attr("transform", "translate(" + layout.size()[0] / 2 + "," + layout.size()[1] / 2 + ")").selectAll("text").data(words).enter().append("text").style("font-size", d => d.size + "px").style("font-family", "Inter").style("fill", (d,i) => color(i)).attr("text-anchor", "middle").attr("transform", d => "translate(" + [d.x, d.y] + ")rotate(" + d.rotate + ")").text(d => d.text); }
@@ -513,7 +1404,7 @@ function renderCorrelationChart(canvasId, data, label, colors) {
         const ctx = document.getElementById(canvasId).getContext('2d');
         if (charts[canvasId]) charts[canvasId].destroy();
         ctx.font = "14px Inter";
-        ctx.fillStyle = "#9ca3af";
+        ctx.fillStyle = "#a8a29e";
         ctx.textAlign = "center";
         ctx.fillText("Not enough data to show this chart yet.", ctx.canvas.width / 2, ctx.canvas.height / 2);
         return;

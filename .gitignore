@@ -4,3 +4,4 @@ demo.wav
 genaura77-sa-key.json
 .env
 __pycache__/
+gcp-credentials.json
