@@ -19,8 +19,3 @@ librosa                     # For audio analysis (feature extraction)
 soundfile                   # A dependency for librosa to read/write audio files
 scipy                       # For scientific computing, used by librosa for signal processing
 pytz                        # For handling timezones, specifically for Firestore timestamps
-
-
-# --- Session Management ---
-redis
-# NOTE: our application also requires 'ffmpeg' for audio conversion. This is a system-level dependency, not a Python package. It must be installed separately in your Docker image or on your server.
