@@ -1,4 +1,30 @@
-# empathetic-ai-therapist/app/brain1_policy.py
+"""
+brain1_policy.py - Decision engine (Brain1) for empathetic voice sessions
+
+Purpose:
+- Brain1 is the DECISION ENGINE for short empathetic voice sessions.
+- It analyzes the latest audio-derived output, full session history, and
+  past techniques to choose a single, therapeutically-appropriate next step.
+- The decision is returned as strict JSON (decision + short guidance) and is
+  intended to be consumed by Brain2 (the response generator / voice component).
+
+Key behaviors:
+- Respects a whitelist of allowed decision combinations (ALLOWED_COMBINATIONS).
+- Includes a safety override: if audio processing flagged a potential crisis,
+  Brain1 immediately returns the "safety_crisis+task" decision with explicit
+  guidance (no model call required).
+- When Vertex AI is used to make the decision, Brain1 constructs a detailed
+  prompt with session context, instructs the model to return JSON only, and
+  includes robust fallback handling for API failures or malformed responses.
+- Designed to be conservative: if the LLM output is missing, malformed, or
+  proposes an invalid decision, Brain1 returns a minimal, safe fallback JSON
+  designed to keep the conversation open and supportive.
+
+Note:
+- This file documents intent and control flow only. No therapeutic "content"
+  logic (e.g., wording of empathy statements) is enforced here — Brain2 is
+  expected to implement the raw guidance and phrasing.
+"""
 import json
 import re
 import logging

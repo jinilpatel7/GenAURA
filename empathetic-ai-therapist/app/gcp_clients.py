@@ -1,11 +1,24 @@
-# empathetic-ai-therapist/app/gcp_clients.py
 """
-GCP + Vertex helper utilities.
+gcp_clients.py - Google Cloud + Vertex AI Helper Utilities
 
-This module:
- - Loads environment variables from a .env file (if present) at import time
- - Exposes helper functions for Speech-to-Text (robust to short pauses), Text-to-Speech,
-   Vertex generation, and Firestore client.
+This module provides utility functions to connect with Google Cloud services
+such as:
+1. Firestore (database for user/session data)
+2. Speech-to-Text (converts audio → text, adaptive for short/long audio)
+3. Text-to-Speech (converts text → natural audio using premium voices)
+4. Vertex AI Generative Models (text generation, if available in environment)
+
+Main Features:
+- Automatically loads environment variables from a `.env` file if available.
+- Dynamically chooses short or long-running Speech-to-Text API based on audio duration.
+- Uses a curated voice catalog to provide realistic, emotional voices for TTS.
+- Provides safe initialization of Vertex AI models with error handling.
+- Includes helper functions for cleaning and parsing model outputs.
+- Exposes `get_firestore_client()` for Firestore database operations.
+
+This module is **import-safe**:
+- If some services (like Vertex AI) are unavailable, functions will fail gracefully
+  instead of crashing the entire app.
 """
 
 import os
@@ -16,29 +29,30 @@ import re
 import json
 from typing import Any, Dict, Optional, Tuple
 
-# dotenv to read .env files (simple import + call)
+# dotenv is used to load environment variables from a .env file
 from dotenv import load_dotenv, find_dotenv
 
-# Google Cloud imports
+# Google Cloud SDK imports
 from google.cloud import speech
 from google.cloud import firestore
 from google.cloud import texttospeech
 
-# Vertex AI (optional)
+# Optional Vertex AI imports
 try:
     import vertexai
     from vertexai.generative_models import GenerativeModel
     _VERTEX_AVAILABLE = True
 except Exception:
+    # If Vertex is not installed or unavailable, mark as not available
     vertexai = None
     GenerativeModel = None
     _VERTEX_AVAILABLE = False
 
-# Module logger
+# Module logger (for debug/info/warning/error logs)
 _logger = logging.getLogger(__name__)
 _logger.addHandler(logging.NullHandler())
 
-# Load .env (if present) at import time
+# --- Load environment variables on import ---
 try:
     _env_path = find_dotenv()
     if _env_path:
@@ -46,16 +60,15 @@ try:
         _logger.debug("Loaded .env from %s", _env_path)
     else:
         load_dotenv(override=False)
-        _logger.debug("No explicit .env found via find_dotenv(); attempted default load.")
+        _logger.debug("No .env found with find_dotenv(); attempted default load.")
 except Exception as e:
     _logger.warning("Error loading .env: %s", e)
 
-# Configuration from environment variables (read after load_dotenv)
+# --- Environment Configurations (defaults provided) ---
 GCP_PROJECT: str = os.environ.get("GCP_PROJECT", "mind-sail-471005")
 GCP_LOCATION: str = os.environ.get("GCP_LOCATION", "us-central1")
 VERTEX_MODEL_NAME: Optional[str] = os.environ.get("VERTEX_MODEL_NAME")
-# Optional SPEECH_MODEL env var to control Speech-to-Text model (e.g. "latest_short", "latest_long")
-SPEECH_MODEL: Optional[str] = os.environ.get("SPEECH_MODEL")
+SPEECH_MODEL: Optional[str] = os.environ.get("SPEECH_MODEL")  # Optional Speech-to-Text model
 
 _logger.debug(
     "GCP_PROJECT=%s, GCP_LOCATION=%s, VERTEX_MODEL_NAME_set=%s, SPEECH_MODEL=%s",
@@ -65,16 +78,15 @@ _logger.debug(
     SPEECH_MODEL,
 )
 
-# Internal flag for Vertex initialization
+# Flag to track Vertex initialization
 _vertex_initialized = False
 
-# *** MODIFIED: Voice Catalog for high-quality, emotional voices ***
-# We prioritize "Studio" voices for their realism and emotional range.
-# WaveNet is the next best choice.
+# --- Voice Catalog for Text-to-Speech ---
+# Premium voices (Studio, WaveNet) are prioritized for natural and emotional delivery
 VOICE_CATALOG = {
     "en-US": {
-        "FEMALE": "en-US-Studio-O",  # Calm, professional female voice
-        "MALE": "en-US-Studio-M",    # Calm, professional male voice
+        "FEMALE": "en-US-Studio-O",  # Calm, professional female
+        "MALE": "en-US-Studio-M",    # Calm, professional male
     },
     "hi-IN": {
         "FEMALE": "hi-IN-Wavenet-D", # Soothing female Hindi voice
@@ -84,7 +96,11 @@ VOICE_CATALOG = {
 
 
 def init_vertex() -> None:
-    """Initialize Vertex AI client (safe to call multiple times)."""
+    """
+    Initialize Vertex AI client for text generation.
+    - Safe to call multiple times.
+    - Does nothing if Vertex AI is not installed or already initialized.
+    """
     global _vertex_initialized
     if _vertex_initialized or not _VERTEX_AVAILABLE:
         if not _VERTEX_AVAILABLE:
@@ -103,8 +119,8 @@ def init_vertex() -> None:
 
 def _wav_duration_seconds_from_bytes(wav_bytes: bytes) -> Optional[float]:
     """
-    Try reading WAV header from bytes to compute duration in seconds.
-    Returns None if it cannot be read.
+    Extract the duration (in seconds) from WAV file bytes.
+    Returns None if it cannot be read (invalid/malformed WAV).
     """
     try:
         with wave.open(io.BytesIO(wav_bytes), 'rb') as wf:
@@ -123,69 +139,63 @@ def transcribe_wav_bytes(
     language_code: str = "en-US",
 ) -> Tuple[str, float]:
     """
-    Convert speech to text using Google Cloud Speech-to-Text.
+    Convert audio bytes (WAV) into text using Google Cloud Speech-to-Text.
 
-    This implementation is now adaptive:
-    - For audio shorter than 55 seconds, it uses the fast synchronous `recognize()` API.
-    - For audio longer than 55 seconds, it uses the `long_running_recognize()` API
-      with a dynamic timeout calculated as (audio_duration + 60 seconds) to
-      prevent timeouts on long user inputs.
+    Features:
+    - For audio < 55s: uses fast synchronous API (recognize()).
+    - For audio >= 55s: uses long-running API (long_running_recognize()).
+      Uses a dynamic timeout = audio length + 60s to avoid API timeouts.
+    - Supports custom model selection via SPEECH_MODEL env var.
 
-    Parameters:
-      - wav_bytes: raw WAV file bytes (PCM16, mono recommended)
-      - sample_rate: sample rate in Hz (for config; actual WAV header will be used by API)
-      - language_code: e.g. "en-US", "hi-IN"
+    Args:
+        wav_bytes: Raw WAV file content (16-bit PCM recommended).
+        sample_rate: Audio sample rate in Hz.
+        language_code: Language for recognition (e.g., "en-US", "hi-IN").
 
-    Returns: (transcript, confidence)
+    Returns:
+        (transcript, confidence)
     """
-    # Define the threshold for using the synchronous vs. long-running API.
-    # The official limit is 60s, we use 55s to be safe.
-    SYNCHRONOUS_API_LIMIT_SECONDS = 55
+    SYNCHRONOUS_API_LIMIT_SECONDS = 55  # Safety margin below official 60s limit
     
     try:
-        _logger.debug("Starting speech-to-text processing (lang=%s, sample_rate=%d)", language_code, sample_rate)
+        _logger.debug("Starting Speech-to-Text (lang=%s, sample_rate=%d)", language_code, sample_rate)
         client = speech.SpeechClient()
         audio = speech.RecognitionAudio(content=wav_bytes)
 
-        # Build RecognitionConfig; include model only if SPEECH_MODEL is set
+        # Config settings (with optional custom model)
         config_kwargs = dict(
             encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
             sample_rate_hertz=sample_rate,
-            language_code=language_code, # *** MODIFIED: Uses passed-in language_code
+            language_code=language_code,
             enable_automatic_punctuation=True,
         )
-
         model_from_env = SPEECH_MODEL or os.environ.get("SPEECH_MODEL")
         if model_from_env:
             config_kwargs["model"] = model_from_env
-            _logger.debug("Using SPEECH_MODEL from env: %s", model_from_env)
-        else:
-            _logger.debug("No SPEECH_MODEL set; omitting model from RecognitionConfig to use API default")
+            _logger.debug("Using custom SPEECH_MODEL: %s", model_from_env)
 
         config = speech.RecognitionConfig(**config_kwargs)
 
-        # Compute duration to decide which API to use and to set a dynamic timeout
+        # Check duration and choose API
         duration = _wav_duration_seconds_from_bytes(wav_bytes)
         if duration is not None:
-            _logger.debug("Detected WAV duration: %.3fs", duration)
+            _logger.debug("WAV duration: %.3fs", duration)
 
         if duration is not None and duration < SYNCHRONOUS_API_LIMIT_SECONDS:
-            _logger.debug("Using synchronous recognize() API for short audio.")
+            _logger.debug("Using synchronous API for short audio.")
             response = client.recognize(config=config, audio=audio)
         else:
-            _logger.debug("Using long_running_recognize() API for long audio.")
-            dynamic_timeout = (int(duration) + 60) if duration is not None else 180
-            _logger.debug("Calling long_running_recognize (will wait up to %ds)...", dynamic_timeout)
-            
+            _logger.debug("Using long-running API for long audio.")
+            dynamic_timeout = (int(duration) + 60) if duration else 180
             operation = client.long_running_recognize(config=config, audio=audio)
             response = operation.result(timeout=dynamic_timeout)
 
+        # Parse results
         if not response.results:
-            _logger.info("No speech detected in audio (Speech-to-Text)")
+            _logger.info("No speech detected in audio")
             return "", 0.0
 
-        segments = []
-        confidences = []
+        segments, confidences = [], []
         for res in response.results:
             if not res.alternatives:
                 continue
@@ -194,44 +204,53 @@ def transcribe_wav_bytes(
             if text:
                 segments.append(text)
             try:
-                c = float(alt.confidence)
-                confidences.append(c)
+                confidences.append(float(alt.confidence))
             except Exception:
                 pass
 
         transcript = " ".join(segments).strip()
         confidence = max(confidences) if confidences else 0.0
 
-        _logger.info("Speech-to-Text result (confidence=%.2f): %s", confidence, transcript)
+        _logger.info("STT result (confidence=%.2f): %s", confidence, transcript)
         return transcript, confidence
 
     except Exception as e:
-        _logger.exception("Speech-to-Text processing failed: %s", e)
+        _logger.exception("Speech-to-Text failed: %s", e)
         return "", 0.0
 
 
 def text_to_speech_bytes(
     text: str,
     lang_code: str = "en-US",
-    gender: str = "FEMALE", # Defaulting to FEMALE now
+    gender: str = "FEMALE",
     audio_encoding: str = "MP3"
 ) -> Optional[bytes]:
     """
-    Convert text to speech using Google Cloud Text-to-Speech
-    Returns audio content bytes or None on failure.
-    *** MODIFIED: This function now dynamically selects a high-quality voice. ***
+    Convert text into natural speech using Google Cloud Text-to-Speech.
+
+    Features:
+    - Uses premium voices (Studio/WaveNet) from VOICE_CATALOG when available.
+    - Falls back to generic voices if not found.
+    - Default voice is female, slightly slowed speaking rate for a calming tone.
+
+    Args:
+        text: The text to convert into speech.
+        lang_code: Language code (e.g., "en-US", "hi-IN").
+        gender: Preferred voice gender ("FEMALE", "MALE", "NEUTRAL").
+        audio_encoding: Output format (MP3 by default).
+
+    Returns:
+        Audio content as bytes (or None on failure).
     """
     try:
         if not text or not text.strip():
             _logger.warning("Empty text provided for TTS")
             return None
 
-        _logger.debug("Starting text-to-speech processing for text: %s", (text[:50] + "...") if len(text) > 50 else text)
         client = texttospeech.TextToSpeechClient()
-
         synthesis_input = texttospeech.SynthesisInput(text=text)
 
-        # Map gender parameter to SSML gender enum
+        # Map gender input to API enums
         gender_up = (gender or "FEMALE").upper()
         if gender_up == "FEMALE":
             ssml_gender = texttospeech.SsmlVoiceGender.FEMALE
@@ -240,26 +259,19 @@ def text_to_speech_bytes(
         else:
             ssml_gender = texttospeech.SsmlVoiceGender.NEUTRAL
 
-        # *** MODIFIED: Select a premium, soothing voice from the catalog ***
+        # Try premium catalog voice first
         voice_name = VOICE_CATALOG.get(lang_code, {}).get(gender_up)
         if voice_name:
-            _logger.debug("Selected voice from catalog: %s for lang=%s, gender=%s", voice_name, lang_code, gender_up)
-            voice = texttospeech.VoiceSelectionParams(
-                language_code=lang_code,
-                name=voice_name
-            )
+            voice = texttospeech.VoiceSelectionParams(language_code=lang_code, name=voice_name)
         else:
-            # Fallback if language/gender combo isn't in our catalog
-            _logger.warning("No specific voice found for lang=%s, gender=%s. Using generic selection.", lang_code, gender_up)
-            voice = texttospeech.VoiceSelectionParams(
-                language_code=lang_code,
-                ssml_gender=ssml_gender
-            )
+            # Fallback generic voice
+            _logger.warning("No catalog voice for lang=%s, gender=%s", lang_code, gender_up)
+            voice = texttospeech.VoiceSelectionParams(language_code=lang_code, ssml_gender=ssml_gender)
 
-        # Configure audio encoding
+        # Audio settings
         audio_config = texttospeech.AudioConfig(
             audio_encoding=texttospeech.AudioEncoding.MP3,
-            speaking_rate=0.95, # Slightly slower for a calmer pace
+            speaking_rate=0.95,  # slower pace
             pitch=0.0
         )
 
@@ -273,30 +285,34 @@ def text_to_speech_bytes(
         return response.audio_content
 
     except Exception as e:
-        _logger.exception("Text-to-Speech processing failed: %s", e)
+        _logger.exception("Text-to-Speech failed: %s", e)
         return None
 
-# ... (rest of the file remains the same)
+
 def _extract_json_from_raw(raw: Optional[str]) -> Optional[str]:
-    """Find the first JSON-looking substring in raw LLM output."""
+    """
+    Extract the first JSON-looking substring from raw model output.
+    Useful when LLM responses contain extra text around JSON.
+    """
     if not raw:
         return None
     m = re.search(r"\{.*\}", raw, re.DOTALL)
-    if m:
-        return m.group(0)
-    return None
+    return m.group(0) if m else None
 
 
 def _attempt_parse(jtext: Optional[str]) -> Optional[Dict[str, Any]]:
-    """Try to parse JSON with some common repairs (single -> double quotes, trailing commas)."""
+    """
+    Try to parse JSON safely, repairing common formatting issues:
+    - Replace single quotes with double quotes.
+    - Remove trailing commas.
+    Returns dict or None if parsing fails.
+    """
     if not jtext:
         return None
     try:
         return json.loads(jtext)
     except Exception:
-        # Try naive repairs
         fixed = jtext.replace("'", '"')
-        # fixed regex: remove trailing commas before } or ]
         fixed = re.sub(r",\s*([}```])", r"\1", fixed)
         try:
             return json.loads(fixed)
@@ -313,17 +329,24 @@ def vertex_generate(
 ) -> Optional[str]:
     """
     Generate text using Vertex AI's generative models.
-    Returns generated text or None on failure.
-    - model_name: override the environment model name if provided.
+
+    Args:
+        prompt_text: The input prompt to the model.
+        model_name: Override the default model if provided.
+        max_output_chars: Maximum number of characters in response.
+        temperature: Controls creativity (higher = more random).
+        top_p: Controls diversity of word selection.
+
+    Returns:
+        Generated text, or None if generation fails.
     """
     if not _VERTEX_AVAILABLE:
-        _logger.debug("Vertex AI not available in environment")
+        _logger.debug("Vertex AI not available")
         return None
 
-    # Use passed model_name or environment value
     model_to_use = model_name or VERTEX_MODEL_NAME
     if not model_to_use:
-        _logger.warning("No Vertex model specified (VERTEX_MODEL_NAME is not set).")
+        _logger.warning("No Vertex model specified")
         return None
 
     try:
@@ -332,11 +355,7 @@ def vertex_generate(
             _logger.warning("Vertex AI not initialized, cannot generate")
             return None
 
-        _logger.debug("Generating with Vertex AI model: %s", model_to_use)
-
-        # Use the GenerativeModel class as in your original code
         model = GenerativeModel(model_to_use)
-
         generation_config = {
             "max_output_tokens": max_output_chars,
             "temperature": temperature,
@@ -345,14 +364,11 @@ def vertex_generate(
 
         response = model.generate_content(prompt_text, generation_config=generation_config)
 
-        # response handling: try common attributes
         if hasattr(response, "text") and response.text:
-            _logger.info("Vertex AI generation completed successfully")
             return response.text
         if hasattr(response, "content") and response.content:
-            _logger.info("Vertex AI generation completed successfully (content)")
             return response.content
-        _logger.warning("Vertex AI response missing text/content; returning stringified response")
+        _logger.warning("Unexpected Vertex response format; returning stringified response")
         return str(response)
 
     except Exception as e:
@@ -362,8 +378,10 @@ def vertex_generate(
 
 def get_firestore_client() -> Optional[firestore.Client]:
     """
-    Get Firestore client with error handling
-    Returns client or None on failure
+    Initialize and return a Firestore client.
+
+    Returns:
+        Firestore client instance, or None on failure.
     """
     try:
         _logger.debug("Initializing Firestore client for project: %s", GCP_PROJECT)

@@ -1,4 +1,24 @@
-# empathetic-ai-therapist/app/brain2_response.py
+"""
+brain2_response.py - Therapeutic response generator (Brain2) for empathetic voice sessions
+
+Purpose:
+- Brain2 converts Brain1's strategic decision into a warm, natural, and safe user-facing response.
+- It builds a detailed prompt including session history and Brain1 guidance, calls an LLM (Vertex),
+  parses the returned JSON, sanitizes it for Text-to-Speech, and returns a strict, validated structure
+  that the voice/UI layer can consume.
+
+Key responsibilities:
+1. Enforce language requirements (generate TTS-ready plain text in the requested language).
+2. Require a strict JSON structure from the LLM (response_parts, psychology_behind_it, tts_voice, display_cards, task_meta).
+3. Sanitize output for TTS (remove Markdown/formatting characters and excessive whitespace).
+4. Provide robust fallbacks if the model fails, returns no JSON, or returns malformed JSON.
+5. Ensure safety-critical flows (e.g., `safety_crisis+task`) include required elements such as immediate resources and a grounding task.
+
+Important notes:
+- This file focuses on structure, validation, and safety. It intentionally does not create final voice audio;
+  that is handled elsewhere using the returned tts_voice and response_parts.
+- No functional logic changed — only explanatory comments and docstrings added for clarity.
+"""
 import json
 import re
 import logging
