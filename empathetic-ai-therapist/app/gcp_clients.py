@@ -27,6 +27,7 @@ import wave
 import logging
 import re
 import json
+import asyncio # <--- IMPORT ASYNCIO FOR RETRY DELAY
 from typing import Any, Dict, Optional, Tuple
 
 # dotenv is used to load environment variables from a .env file
@@ -40,12 +41,13 @@ from google.cloud import texttospeech
 # Optional Vertex AI imports
 try:
     import vertexai
-    from vertexai.generative_models import GenerativeModel
+    from vertexai.generative_models import GenerativeModel, Part
     _VERTEX_AVAILABLE = True
 except Exception:
     # If Vertex is not installed or unavailable, mark as not available
     vertexai = None
     GenerativeModel = None
+    Part = None
     _VERTEX_AVAILABLE = False
 
 # Module logger (for debug/info/warning/error logs)
@@ -320,7 +322,7 @@ def _attempt_parse(jtext: Optional[str]) -> Optional[Dict[str, Any]]:
             return None
 
 
-def vertex_generate(
+async def vertex_generate(
     prompt_text: str,
     model_name: Optional[str] = None,
     max_output_chars: int = 2048,
@@ -328,7 +330,9 @@ def vertex_generate(
     top_p: float = 0.9
 ) -> Optional[str]:
     """
-    Generate text using Vertex AI's generative models.
+    Generate text using Vertex AI's generative models with resilience.
+    - Handles rate limiting with exponential backoff.
+    - Explicitly checks for and logs safety filter blocks.
 
     Args:
         prompt_text: The input prompt to the model.
@@ -349,31 +353,45 @@ def vertex_generate(
         _logger.warning("No Vertex model specified")
         return None
 
-    try:
-        init_vertex()
-        if not _vertex_initialized:
-            _logger.warning("Vertex AI not initialized, cannot generate")
-            return None
-
-        model = GenerativeModel(model_to_use)
-        generation_config = {
-            "max_output_tokens": max_output_chars,
-            "temperature": temperature,
-            "top_p": top_p
-        }
-
-        response = model.generate_content(prompt_text, generation_config=generation_config)
-
-        if hasattr(response, "text") and response.text:
-            return response.text
-        if hasattr(response, "content") and response.content:
-            return response.content
-        _logger.warning("Unexpected Vertex response format; returning stringified response")
-        return str(response)
-
-    except Exception as e:
-        _logger.exception("Vertex AI generation failed: %s", e)
+    init_vertex()
+    if not _vertex_initialized:
+        _logger.warning("Vertex AI not initialized, cannot generate")
         return None
+
+    model = GenerativeModel(model_to_use)
+    generation_config = {
+        "max_output_tokens": max_output_chars,
+        "temperature": temperature,
+        "top_p": top_p
+    }
+
+    max_retries = 3
+    delay = 1.0  # Initial delay in seconds
+
+    for attempt in range(max_retries):
+        try:
+            response = await model.generate_content_async(prompt_text, generation_config=generation_config)
+
+            # --- MAJOR FIX: Explicitly check for safety blocks ---
+            if not response.candidates:
+                _logger.warning(
+                    "Vertex AI response was blocked. Prompt Feedback: %s",
+                    response.prompt_feedback
+                )
+                return None  # Return None immediately if blocked, no retry needed
+
+            # The official way to get text is from the first candidate.
+            return response.candidates[0].content.parts[0].text
+
+        except Exception as e:
+            _logger.warning("Attempt %d: Vertex AI generation failed with exception: %s", attempt + 1, e)
+            if attempt < max_retries - 1:
+                await asyncio.sleep(delay)
+                delay *= 2  # Exponential backoff
+            else:
+                _logger.error("All %d retries for Vertex AI generation failed.", max_retries)
+                return None
+    return None
 
 
 def get_firestore_client() -> Optional[firestore.Client]:

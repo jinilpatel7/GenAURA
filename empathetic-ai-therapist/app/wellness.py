@@ -21,6 +21,7 @@ import json
 import re
 from collections import defaultdict
 import numpy as np
+import asyncio
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Body, Query
 from google.cloud import firestore
@@ -101,6 +102,12 @@ async def _analyze_text_for_wellness(text: str) -> dict:
 
     Returns the parsed JSON dict or {} if parsing fails.
     """
+    # --- MAJOR FIX: Truncate long input to prevent API safety filter blocks ---
+    MAX_INPUT_CHARS = 3000  # A safe and generous limit for a journal entry
+    if len(text) > MAX_INPUT_CHARS:
+        _logger.warning("Input text for analysis is %d chars long, truncating to %d.", len(text), MAX_INPUT_CHARS)
+        text = text[:MAX_INPUT_CHARS]
+
     prompt = (
         "You are an expert emotion and topic analysis AI. Analyze the following user journal entry. "
         "Respond ONLY with a single JSON object with these exact keys:\n"
@@ -111,7 +118,7 @@ async def _analyze_text_for_wellness(text: str) -> dict:
         f"User text: \"{text}\"\n\n"
         "JSON response only."
     )
-    raw_response = vertex_generate(prompt, temperature=0.2, max_output_chars=1024)
+    raw_response = await vertex_generate(prompt, temperature=0.2, max_output_chars=1024)
     return _extract_json_from_raw(raw_response)
 
 
@@ -146,7 +153,7 @@ async def generate_session_summary(user_id: str, session_history: list, session_
     )
 
     try:
-        raw_summary = vertex_generate(prompt, temperature=0.3, max_output_chars=2048)
+        raw_summary = await vertex_generate(prompt, temperature=0.3, max_output_chars=2048)
         summary_data = _extract_json_from_raw(raw_summary)
         if not summary_data:
             return
@@ -200,9 +207,9 @@ async def log_daily_entry(text: str = Form(...), hour: int = Form(...), date_str
         raise HTTPException(status_code=500, detail="Database connection failed.")
 
     try:
-        doc_id = f"{date_str}_{hour:02d}"
-        doc_ref = client.collection(FIRESTORE_USERS_COLLECTION).document(user_id).collection(FIRESTORE_LOGS_SUBCOLLECTION).document(doc_id)
-        doc_ref.set(log_data)
+        # Use .add() to auto-generate unique doc IDs, preventing overwrites.
+        collection_ref = client.collection(FIRESTORE_USERS_COLLECTION).document(user_id).collection(FIRESTORE_LOGS_SUBCOLLECTION)
+        update_time, doc_ref = collection_ref.add(log_data)
 
         # Return the saved log (useful for the frontend to reflect changes immediately)
         return {"status": "success", "data": log_data}
@@ -215,8 +222,9 @@ async def log_daily_entry(text: str = Form(...), hour: int = Form(...), date_str
 async def log_structured_entry(
     date_str: str = Form(...),
     sleep_quality: str = Form(None),
-    social_interactions: list[str] = Form([]),
-    activities: list[str] = Form([]),
+    # Use Form(default=[]) for robust list handling from HTML forms.
+    social_interactions: list[str] = Form(default=[]),
+    activities: list[str] = Form(default=[]),
     food_breakfast: str = Form(None),
     food_lunch: str = Form(None),
     food_dinner: str = Form(None),
@@ -356,21 +364,21 @@ def _aggregate_log_data(logs: list) -> dict:
     final_correlations = {}
 
     # Sleep quality correlations (mean sentiment per sleep category)
-    sleep_corr = {item: np.mean(sentiments) for item, sentiments in correlation_data['sleep_quality'].items()}
+    sleep_corr = {item: np.mean(sentiments) if sentiments else 0.0 for item, sentiments in correlation_data['sleep_quality'].items()}
     for option in ALL_SLEEP_OPTIONS:
         if option not in sleep_corr:
-            sleep_corr[option] = 0.0  # Neutral default when no samples
+            sleep_corr[option] = 0.0
     final_correlations['sleep_quality'] = sleep_corr
 
     # Activity correlations
-    activity_corr = {item: np.mean(sentiments) for item, sentiments in correlation_data['activity'].items()}
+    activity_corr = {item: np.mean(sentiments) if sentiments else 0.0 for item, sentiments in correlation_data['activity'].items()}
     for option in ALL_ACTIVITY_OPTIONS:
         if option not in activity_corr:
             activity_corr[option] = 0.0
     final_correlations['activity'] = activity_corr
 
     # Social interaction correlations
-    social_corr = {item: np.mean(sentiments) for item, sentiments in correlation_data['social'].items()}
+    social_corr = {item: np.mean(sentiments) if sentiments else 0.0 for item, sentiments in correlation_data['social'].items()}
     for option in ALL_SOCIAL_OPTIONS:
         if option not in social_corr:
             social_corr[option] = 0.0
@@ -422,7 +430,7 @@ async def _generate_wellness_insights(aggregated_data: dict) -> dict:
         f"User Data Summary:\n---\n{prompt_context}\n---\n\n"
         "JSON response only. Ensure the output is a valid JSON object with rich, detailed content."
     )
-    raw_response = vertex_generate(prompt, temperature=0.6, max_output_chars=4096)
+    raw_response = await vertex_generate(prompt, temperature=0.6, max_output_chars=4096)
     insights = _extract_json_from_raw(raw_response)
 
     # If the model fails or returns partial output, provide a conservative default set of insights
@@ -562,7 +570,7 @@ async def summarize_day_logs(payload: dict = Body(...), user_id: str = Depends(g
         "Summary:"
     )
     try:
-        summary = vertex_generate(prompt, temperature=0.4, max_output_chars=1024)
+        summary = await vertex_generate(prompt, temperature=0.4, max_output_chars=1024)
         return {"summary": summary or "Could not generate a summary for this day."}
     except Exception as e:
         _logger.exception("Failed to summarize day logs for user %s: %s", user_id, e)

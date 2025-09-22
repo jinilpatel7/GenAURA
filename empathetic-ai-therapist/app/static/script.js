@@ -38,6 +38,25 @@ function updateStatus(status, processing=false){
     else dom.statusIndicator.classList.add('status-idle');
 }
 
+/**
+ * Toggles the visibility of the interpretation text for a chart.
+ * This function is called by the "How to Interpret" link.
+ * @param {HTMLElement} buttonElement The clicked 'a' tag.
+ */
+function toggleInterpret(buttonElement) {
+    // The interpretation text div is the next element sibling
+    const interpretText = buttonElement.nextElementSibling;
+    if (interpretText && interpretText.classList.contains('interpret-text')) {
+        // Toggle the 'hidden' class. This returns true if the class was added (now hidden)
+        // and false if it was removed (now visible).
+        const isHidden = interpretText.classList.toggle('hidden');
+        
+        // Update the button text and arrow based on the new state
+        buttonElement.innerHTML = isHidden ? 'How to Interpret ▼' : 'How to Interpret ▲';
+    }
+}
+
+
 // --- SESSION UI MANAGEMENT (ROBUST VERSION) ---
 
 function updateSessionUI() {
@@ -95,7 +114,41 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function setupAuthUI() {
-    dom.authContainer.innerHTML = `<div class="auth-container"><form id="loginForm" class="auth-form"><h2>Welcome Back to HealAura</h2><input type="text" id="loginUsername" name="username" placeholder="Username" required><input type="password" id="loginPassword" name="password" placeholder="Password" required><button type="submit" class="primary"><span class="btn-text">Login</span><div class="loader"></div></button><div class="form-footer">Don't have an account? <a id="showSignupLink">Create one</a></div></form><form id="signupForm" class="auth-form hidden"><h2>Create Your HealAura Account</h2><div style="border:1px solid #f0ad4e; padding:12px; border-radius:6px; background:#fff7e6;"><strong>Important:</strong><p style="margin:6px 0 0;">This is an anonymous account. We do not collect email or other credentials. <strong>Save your username and password now</strong>; they cannot be recovered later.</p></div><input type="text" id="signupUsername" name="username" placeholder="Username" required><input type="password" id="signupPassword" name="password" placeholder="Password (min 6 chars)" required><input type="password" id="signupConfirmPassword" name="confirm_password" placeholder="Confirm Password" required><button type="submit" class="primary"><span class="btn-text">Create Account</span><div class="loader"></div></button><div class="form-footer">Already have an account? <a id="showLoginLink">Login</a></div></form></div>`;
+    dom.authContainer.innerHTML = `
+    <div class="auth-container">
+        <form id="loginForm" class="auth-form">
+            <h2>Welcome Back to HealAura</h2>
+            
+            <div style="border:1px solid var(--success); padding:16px; border-radius:12px; background:rgba(104, 211, 145, 0.1); text-align: left; font-size: 14px; line-height: 1.5;">
+                <strong style="color: #2f6e53; font-weight: 700;">Demo Experience</strong>
+                <p style="margin: 8px 0 0; color: var(--text-secondary);">
+                    For the best demo experience, try logging in with our sample account. The wellness tracker here evolves with historical data, as activity has been logged for several days. This way, the dashboard shows meaningful trends and evolving insights.
+                </p>
+                <div style="margin-top: 12px; background: var(--bg); padding: 8px 12px; border-radius: 8px;">
+                    <strong>Username:</strong> <code style="background: white; padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border);">jacky</code><br>
+                    <strong>Password:</strong> <code style="background: white; padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border);">Genaura</code>
+                </div>
+            </div>
+
+            <input type="text" id="loginUsername" name="username" placeholder="Username" required>
+            <input type="password" id="loginPassword" name="password" placeholder="Password" required>
+            <button type="submit" class="primary"><span class="btn-text">Login</span><div class="loader"></div></button>
+            <div class="form-footer">Don't have an account? <a id="showSignupLink">Create one</a></div>
+        </form>
+
+        <form id="signupForm" class="auth-form hidden">
+            <h2>Create Your HealAura Account</h2>
+            <div style="border:1px solid #f0ad4e; padding:12px; border-radius:6px; background:#fff7e6;">
+                <strong>Important:</strong>
+                <p style="margin:6px 0 0;">This is an anonymous account. We do not collect email or other credentials. <strong>Save your username and password now</strong>; they cannot be recovered later.</p>
+            </div>
+            <input type="text" id="signupUsername" name="username" placeholder="Username" required>
+            <input type="password" id="signupPassword" name="password" placeholder="Password (min 6 chars)" required>
+            <input type="password" id="signupConfirmPassword" name="confirm_password" placeholder="Confirm Password" required>
+            <button type="submit" class="primary"><span class="btn-text">Create Account</span><div class="loader"></div></button>
+            <div class="form-footer">Already have an account? <a id="showLoginLink">Login</a></div>
+        </form>
+    </div>`;
     Object.assign(dom, {
         loginForm: document.getElementById('loginForm'), signupForm: document.getElementById('signupForm'),
         showSignupLink: document.getElementById('showSignupLink'), showLoginLink: document.getElementById('showLoginLink'),
