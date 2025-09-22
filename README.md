@@ -24,7 +24,7 @@ The system goes beyond typical chatbots by analyzing not just *what* users say, 
 - **AI-Powered Dashboard:** Narrative insights, challenges, areas of growth.  
 - **Personalized Weekly Goals** with rationale.  
 - **Visualization:** Correlation charts, sentiment journey, heatmaps, emotion pie chart, word clouds.  
-🎥 [Feature 2 Demo](https://drive.google.com/file/d/18kYT3MaTz6DrYmpevqjcPvlKyL4gC36/view?usp=drive_link)
+🎥 [Feature 2 Demo](https://drive.google.com/file/d/18kYT3MaTz6DrYmp-evqjcPvlKyL4gC36/view?usp=drive_link)
 
 ---
 
