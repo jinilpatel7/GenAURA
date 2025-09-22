@@ -1,12 +1,5 @@
 # HealAura: An Empathetic AI Mental Wellness Companion
 
-![HealAura Banner](https://via.placeholder.com/1200x300.png?text=HealAura%20-%20Your%20AI%20Wellness%20Companion)
-
-[![Python Version][python-shield]][python-url]
-[![Framework][fastapi-shield]][fastapi-url]
-[![Cloud Provider][gcp-shield]][gcp-url]
-[![License][license-shield]][license-url]
-
 **HealAura** is an AI-powered, confidential, and empathetic mental wellness solution designed to support and guide youth in overcoming stigma and accessing help.  
 It combines principles of Cognitive Behavioral Therapy (CBT), metacognition, and multimodal emotion detection to deliver personalized, therapeutic-like interactions.
 
